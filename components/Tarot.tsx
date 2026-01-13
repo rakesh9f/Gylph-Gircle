@@ -10,7 +10,7 @@ import { usePayment } from '../context/PaymentContext';
 import TarotCard from './TarotCard';
 import FullReport from './FullReport';
 
-// --- DECK GENERATION LOGIC ---
+// --- DECK GENERATION LOGIC (78 Cards) ---
 const SUITS = ['Wands', 'Cups', 'Swords', 'Pentacles'];
 const RANKS = ['Ace', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Page', 'Knight', 'Queen', 'King'];
 const MAJOR_NAMES = [
@@ -29,16 +29,14 @@ interface CardData {
 
 const GENERATE_DECK = (): CardData[] => {
     const deck: CardData[] = [];
-    
     // Add Major Arcana
     MAJOR_NAMES.forEach((name, i) => {
         deck.push({ 
-            number: i.toString(), // Simplified numbering 
+            number: i.toString(),
             name, 
             type: 'Major' 
         });
     });
-
     // Add Minor Arcana
     SUITS.forEach(suit => {
         RANKS.forEach((rank, i) => {
@@ -50,7 +48,6 @@ const GENERATE_DECK = (): CardData[] => {
             });
         });
     });
-
     return deck;
 };
 
@@ -65,13 +62,12 @@ const Tarot: React.FC = () => {
   const { t } = useTranslation();
   const { openPayment } = usePayment();
 
-  // Shuffle deck for random "Feel" even if user picks specific grid slot
+  // Shuffle deck on mount
   const shuffledDeck = useMemo(() => {
       return [...FULL_DECK].sort(() => Math.random() - 0.5);
   }, []);
 
   const handleCardSelect = useCallback(async (card: CardData) => {
-    // Only allow selecting if not already paying/paid
     if (isPaid) return; 
     
     setSelectedCard(card);
@@ -81,10 +77,14 @@ const Tarot: React.FC = () => {
     setIsPaid(false);
 
     try {
+      // Simulate API call or real call
       const result = await getTarotReading(card.name);
       setReading(result);
     } catch (err: any) {
-      setError(`Failed to get reading: ${err.message}. Please try again.`);
+      console.error(err);
+      setError(`The spirits are quiet... (${err.message}). Trying fallback.`);
+      // Fallback text if API fails so user sees something
+      setReading("The card you have drawn is powerful. Trust your intuition as the path unfolds before you.");
     } finally {
       setIsLoading(false);
     }
@@ -173,9 +173,9 @@ const Tarot: React.FC = () => {
                             </div>
                           )}
                           
-                          {error && <p className="text-red-400 text-center bg-red-900/20 p-4 rounded border border-red-500/30">{error}</p>}
+                          {error && <p className="text-red-400 text-center bg-red-900/20 p-4 rounded border border-red-500/30 mb-4">{error}</p>}
                           
-                          {reading && selectedCard && (
+                          {(reading || error) && selectedCard && (
                               <div className="text-center space-y-6 w-full">
                                   {!isPaid ? (
                                     <>

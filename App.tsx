@@ -9,7 +9,7 @@ import Header from './components/Header';
 import Footer from './components/Footer';
 import Remedy from './components/Remedy';
 import FaceReading from './components/FaceReading';
-import AdminLanding from './components/AdminLanding';
+import AdminDashboard from './components/AdminDashboard';
 import AdminConfig from './components/AdminConfig';
 import AdminDB from './components/AdminDB';
 import MasterLogin from './components/MasterLogin';
@@ -28,8 +28,6 @@ import { AccessibilityProvider } from './context/AccessibilityContext';
 import LargeTextMode from './components/LargeTextMode';
 import ReferralProgram from './components/ReferralProgram';
 import Leaderboard from './components/Leaderboard';
-
-// GLOBAL: Language Switcher
 import LanguageSwitcher from './components/LanguageSwitcher';
 
 // Protected Route Wrapper
@@ -39,24 +37,15 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { isAuthenticated, isLoading } = useAuth();
-  
   if (isLoading) return null;
-  
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
   return <>{children}</>;
 };
 
+// Simple Admin Route Check
 const AdminRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const { user } = useAuth();
-  const masterSession = localStorage.getItem('glyph_admin_session');
-  const isMaster = !!masterSession;
-  const isNormalAdmin = user?.email === 'rocky@glyph.co' || user?.email === 'minti@glyph.co';
-  
-  if (!isMaster && !isNormalAdmin) {
-    return <Navigate to="/master-login" replace />;
-  }
+  const session = localStorage.getItem('glyph_admin_session');
+  if (!session) return <Navigate to="/master-login" replace />;
   return <>{children}</>;
 };
 
@@ -66,22 +55,16 @@ function App() {
   const location = useLocation();
 
   useEffect(() => {
-    const secure = checkSystemIntegrity();
-    setIsSecure(secure);
+    setIsSecure(checkSystemIntegrity());
   }, []);
 
   if (!isSecure) {
-    return (
-        <div className="min-h-screen bg-black flex flex-col items-center justify-center text-red-500 p-8 text-center font-mono">
-            <h1 className="text-3xl font-bold mb-4">SECURITY ALERT</h1>
-            <p>This device or browser environment is not secure.</p>
-        </div>
-    );
+    return <div className="text-red-500 p-10 text-center">Security Alert: Environment Unsafe</div>;
   }
 
-  const isAuthPage = location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/master-login';
-  const isDashboard = location.pathname.startsWith('/admin');
-  const showLayout = isAuthenticated && !isAuthPage && !isDashboard;
+  const isAuthPage = ['/login', '/register', '/master-login'].includes(location.pathname);
+  const isAdminPage = location.pathname.startsWith('/admin');
+  const showLayout = isAuthenticated && !isAuthPage && !isAdminPage;
 
   return (
     <AccessibilityProvider>
@@ -90,7 +73,6 @@ function App() {
           <div className="bg-midnight min-h-screen text-amber-50 flex flex-col font-lora overflow-x-hidden selection:bg-neon-magenta selection:text-white transition-all duration-300">
             {showLayout && <Header onLogout={logout} />}
             
-            {/* Global Language Switcher - Floating on Mobile, in Header usually but here for visibility */}
             <div className="fixed top-20 right-4 z-50 md:top-4 md:right-32">
                 <LanguageSwitcher />
             </div>
@@ -102,7 +84,7 @@ function App() {
                  <LargeTextMode />
                  {user?.email === 'rocky@glyph.co' && <ABTestStatus />}
                  
-                 {!isDashboard && (
+                 {!isAdminPage && (
                     <Link to="/referrals" className="fixed bottom-6 left-6 z-40 animate-pulse-glow group">
                        <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-green-700 rounded-full shadow-[0_0_20px_rgba(34,197,94,0.4)] flex items-center justify-center border-2 border-white/20 transform group-hover:scale-110 transition-transform">
                           <span className="text-2xl">🎁</span>
@@ -114,10 +96,18 @@ function App() {
 
             <main className={`flex-grow ${showLayout ? 'container mx-auto px-4 py-8' : ''}`} role="main">
               <Routes>
+                {/* PUBLIC */}
                 <Route path="/login" element={isAuthenticated ? <Navigate to="/home" replace /> : <Login />} />
                 <Route path="/register" element={isAuthenticated ? <Navigate to="/home" replace /> : <Register />} />
+                
+                {/* ADMIN - DIRECT ROUTES */}
                 <Route path="/master-login" element={<MasterLogin />} />
+                <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+                <Route path="/admin/config" element={<AdminRoute><AdminConfig /></AdminRoute>} />
+                <Route path="/admin/revenue" element={<AdminRoute><RevenueDashboard /></AdminRoute>} />
+                <Route path="/admin/db/:table" element={<AdminRoute><AdminDB /></AdminRoute>} />
 
+                {/* USER - PROTECTED */}
                 <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
                 <Route path="/palmistry" element={<ProtectedRoute><Palmistry /></ProtectedRoute>} />
                 <Route path="/numerology" element={<ProtectedRoute><NumerologyAstrology mode="numerology" /></ProtectedRoute>} />
@@ -125,13 +115,8 @@ function App() {
                 <Route path="/tarot" element={<ProtectedRoute><Tarot /></ProtectedRoute>} />
                 <Route path="/face-reading" element={<ProtectedRoute><FaceReading /></ProtectedRoute>} />
                 <Route path="/remedy" element={<ProtectedRoute><Remedy /></ProtectedRoute>} />
-                
                 <Route path="/referrals" element={<ProtectedRoute><ReferralProgram /></ProtectedRoute>} />
                 <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
-
-                <Route path="/admin/config" element={<AdminRoute><AdminConfig /></AdminRoute>} />
-                <Route path="/admin/revenue" element={<AdminRoute><RevenueDashboard /></AdminRoute>} />
-                <Route path="/admin/db/:table" element={<AdminRoute><AdminDB /></AdminRoute>} />
                 
                 <Route path="/" element={isAuthenticated ? <Navigate to="/home" replace /> : <Navigate to="/login" replace />} />
                 <Route path="*" element={<Navigate to={isAuthenticated ? "/home" : "/login"} replace />} />
