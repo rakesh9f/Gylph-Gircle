@@ -1,9 +1,10 @@
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Home from './components/Home';
 import Palmistry from './components/Palmistry';
 import Login from './components/Login';
+import Register from './components/Register';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import Remedy from './components/Remedy';
@@ -13,14 +14,18 @@ import AdminConfig from './components/AdminConfig';
 import NumerologyAstrology from './components/NumerologyAstrology';
 import Tarot from './components/Tarot';
 import { checkSystemIntegrity } from './services/security';
+import { useAuth } from './context/AuthContext';
 
 // Protected Route Wrapper
 interface ProtectedRouteProps {
   children?: React.ReactNode;
-  isAuthenticated: boolean;
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, isAuthenticated }) => {
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
+  const { isAuthenticated, isLoading } = useAuth();
+  
+  if (isLoading) return null; // Or a loading spinner
+  
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
@@ -30,40 +35,28 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, isAuthenticat
 // Admin Route Wrapper
 interface AdminRouteProps {
   children?: React.ReactNode;
-  role: 'admin' | 'user' | null;
 }
 
-const AdminRoute: React.FC<AdminRouteProps> = ({ children, role }) => {
-  if (role !== 'admin') {
+const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
+  const { user } = useAuth();
+  // Simple check based on email for demo admin
+  // In real app, check user.role from DB
+  const isAdmin = user?.email === 'rocky@glyph.co' || user?.email === 'minti@glyph.co';
+  
+  if (!isAdmin) {
     return <Navigate to="/home" replace />;
   }
   return <>{children}</>;
 };
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userRole, setUserRole] = useState<'admin' | 'user' | null>(null);
+  const { isAuthenticated, logout, user } = useAuth();
   const [isSecure, setIsSecure] = useState(true);
   const location = useLocation();
 
   useEffect(() => {
-    // Perform Security Check on Mount
     const secure = checkSystemIntegrity();
     setIsSecure(secure);
-  }, []);
-
-  const handleLoginSuccess = useCallback((username: string) => {
-    if (username === 'rocky' || username === 'Minti') {
-      setUserRole('admin');
-    } else {
-      setUserRole('user');
-    }
-    setIsAuthenticated(true);
-  }, []);
-
-  const handleLogout = useCallback(() => {
-    setIsAuthenticated(false);
-    setUserRole(null);
   }, []);
 
   if (!isSecure) {
@@ -76,37 +69,40 @@ function App() {
     );
   }
 
-  // Show layout (header/footer) only when authenticated and not on login page
-  const showLayout = isAuthenticated && location.pathname !== '/login';
+  // Show layout (header/footer) only when authenticated and not on auth pages
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
+  const showLayout = isAuthenticated && !isAuthPage;
 
   return (
     <div className="bg-midnight min-h-screen text-amber-50 flex flex-col font-lora overflow-x-hidden selection:bg-neon-magenta selection:text-white">
-      {showLayout && <Header onLogout={handleLogout} />}
+      {showLayout && <Header onLogout={logout} />}
       
       <main className={`flex-grow ${showLayout ? 'container mx-auto px-4 py-8' : ''}`}>
         <Routes>
-          {/* Login Route */}
+          {/* Public/Auth Routes */}
           <Route 
             path="/login" 
-            element={
-              isAuthenticated ? <Navigate to="/home" replace /> : <Login onLoginSuccess={handleLoginSuccess} />
-            } 
+            element={isAuthenticated ? <Navigate to="/home" replace /> : <Login />} 
+          />
+          <Route 
+            path="/register" 
+            element={isAuthenticated ? <Navigate to="/home" replace /> : <Register />} 
           />
 
           {/* Protected Routes */}
-          <Route path="/home" element={<ProtectedRoute isAuthenticated={isAuthenticated}><Home /></ProtectedRoute>} />
-          <Route path="/palmistry" element={<ProtectedRoute isAuthenticated={isAuthenticated}><Palmistry /></ProtectedRoute>} />
-          <Route path="/numerology" element={<ProtectedRoute isAuthenticated={isAuthenticated}><NumerologyAstrology mode="numerology" /></ProtectedRoute>} />
-          <Route path="/astrology" element={<ProtectedRoute isAuthenticated={isAuthenticated}><NumerologyAstrology mode="astrology" /></ProtectedRoute>} />
-          <Route path="/tarot" element={<ProtectedRoute isAuthenticated={isAuthenticated}><Tarot /></ProtectedRoute>} />
-          <Route path="/face-reading" element={<ProtectedRoute isAuthenticated={isAuthenticated}><FaceReading /></ProtectedRoute>} />
-          <Route path="/remedy" element={<ProtectedRoute isAuthenticated={isAuthenticated}><Remedy /></ProtectedRoute>} />
+          <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+          <Route path="/palmistry" element={<ProtectedRoute><Palmistry /></ProtectedRoute>} />
+          <Route path="/numerology" element={<ProtectedRoute><NumerologyAstrology mode="numerology" /></ProtectedRoute>} />
+          <Route path="/astrology" element={<ProtectedRoute><NumerologyAstrology mode="astrology" /></ProtectedRoute>} />
+          <Route path="/tarot" element={<ProtectedRoute><Tarot /></ProtectedRoute>} />
+          <Route path="/face-reading" element={<ProtectedRoute><FaceReading /></ProtectedRoute>} />
+          <Route path="/remedy" element={<ProtectedRoute><Remedy /></ProtectedRoute>} />
           
           <Route 
             path="/admin/config" 
             element={
-              <ProtectedRoute isAuthenticated={isAuthenticated}>
-                <AdminRoute role={userRole}><AdminConfig /></AdminRoute>
+              <ProtectedRoute>
+                <AdminRoute><AdminConfig /></AdminRoute>
               </ProtectedRoute>
             } 
           />
@@ -116,7 +112,7 @@ function App() {
             path="/" 
             element={
               isAuthenticated 
-                ? (userRole === 'admin' ? <AdminLanding /> : <Navigate to="/home" replace />) 
+                ? <Navigate to="/home" replace />
                 : <Navigate to="/login" replace />
             } 
           />

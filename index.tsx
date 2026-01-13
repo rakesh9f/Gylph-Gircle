@@ -7,7 +7,7 @@ import './App.css';
 import { PaymentProvider } from './context/PaymentContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { DbProvider } from './context/DbContext';
-import { UserProvider } from './context/UserContext';
+import { AuthProvider } from './context/AuthContext';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -20,11 +20,11 @@ root.render(
     <HashRouter>
       <LanguageProvider>
         <DbProvider>
-          <UserProvider>
+          <AuthProvider>
             <PaymentProvider>
               <App />
             </PaymentProvider>
-          </UserProvider>
+          </AuthProvider>
         </DbProvider>
       </LanguageProvider>
     </HashRouter>

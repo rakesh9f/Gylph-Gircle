@@ -1,9 +1,12 @@
+
 import { v4 as uuidv4 } from 'uuid';
 
 // Types representing our Database Schema
 export interface User {
   id: string;
-  email: string | null;
+  email: string; // Changed to required for auth
+  name?: string; // Added for personalization
+  password_hash?: string; // Added for auth
   credits: number;
   created_at: string;
 }
@@ -15,7 +18,7 @@ export interface Reading {
   title: string;
   content: string;
   subtitle?: string;
-  image_url?: string; // For charts or card images
+  image_url?: string;
   paid: boolean;
   is_favorite: boolean;
   timestamp: string;
@@ -37,16 +40,14 @@ interface DatabaseSchema {
   transactions: Transaction[];
 }
 
-const DB_KEY = 'gylph_circle_prod_db_v1';
+const DB_KEY = 'gylph_circle_prod_db_v2'; // Version bump
 
-// Initial Empty State
 const INITIAL_DB: DatabaseSchema = {
   users: [],
   readings: [],
   transactions: []
 };
 
-// Helper to generate UUIDs (simple fallback if uuid pkg issues)
 const generateId = () => {
   return typeof crypto !== 'undefined' && crypto.randomUUID 
     ? crypto.randomUUID() 
@@ -69,27 +70,31 @@ class LocalDatabase {
 
   // --- USER OPERATIONS ---
 
-  // Get or Create a user for the current device
-  initializeUser(): User {
+  // Create a new user with explicit details
+  createUser(email: string, name: string, passwordHash: string): User {
     const db = this.getDb();
-    let userId = localStorage.getItem('gylph_user_id');
-    
-    let user = userId ? db.users.find(u => u.id === userId) : null;
-
-    if (!user) {
-      // Create new user
-      user = {
-        id: generateId(),
-        email: null,
-        credits: 0, // Start with 0 or free credits
-        created_at: new Date().toISOString()
-      };
-      db.users.push(user);
-      this.saveDb(db);
-      localStorage.setItem('gylph_user_id', user.id);
+    const existing = db.users.find(u => u.email === email);
+    if (existing) {
+        throw new Error("User already exists");
     }
 
-    return user;
+    const newUser: User = {
+        id: generateId(),
+        email,
+        name,
+        password_hash: passwordHash,
+        credits: 0,
+        created_at: new Date().toISOString()
+    };
+
+    db.users.push(newUser);
+    this.saveDb(db);
+    return newUser;
+  }
+
+  getUserByEmail(email: string): User | undefined {
+    const db = this.getDb();
+    return db.users.find(u => u.email === email);
   }
 
   getUser(userId: string): User | undefined {
@@ -118,7 +123,7 @@ class LocalDatabase {
       is_favorite: false,
       timestamp: new Date().toISOString()
     };
-    db.readings.unshift(newReading); // Add to top
+    db.readings.unshift(newReading);
     this.saveDb(db);
     return newReading;
   }

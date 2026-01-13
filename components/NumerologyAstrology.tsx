@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { getAstroNumeroReading } from '../services/geminiService';
@@ -34,6 +35,10 @@ const NumerologyAstrology: React.FC<NumerologyAstrologyProps> = ({ mode }) => {
   const validateForm = () => {
     if (!formData.name || !formData.dob) {
         return 'Name and Date of Birth are required.';
+    }
+    // Strict Input Validation based on mode
+    if (mode === 'numerology') {
+         // No extra checks needed for numerology besides name/dob
     }
     if (mode === 'astrology' && (!formData.pob || !formData.tob)) {
         return 'Place and Time of Birth are required for Astrology.';
@@ -93,34 +98,40 @@ const NumerologyAstrology: React.FC<NumerologyAstrologyProps> = ({ mode }) => {
             </p>
 
             <form onSubmit={handleGetReading} className="grid md:grid-cols-2 gap-6 mb-8">
-              <div>
-                <label htmlFor="name" className="block text-amber-200 mb-2">{t('fullName')}</label>
-                <input type="text" name="name" id="name" value={formData.name} onChange={handleInputChange} className="w-full p-2 bg-gray-900 border border-amber-500/30 rounded-md text-amber-50" />
+              <div className="md:col-span-2">
+                <label htmlFor="name" className="block text-amber-200 mb-2 font-bold">{t('fullName')}</label>
+                <input type="text" name="name" id="name" value={formData.name} onChange={handleInputChange} className="w-full p-3 bg-gray-900 border border-amber-500/30 rounded-lg text-amber-50 focus:ring-1 focus:ring-amber-500" placeholder="e.g. John Doe" />
               </div>
-              <div>
-                <label htmlFor="dob" className="block text-amber-200 mb-2">{t('dob')}</label>
-                <input type="date" name="dob" id="dob" value={formData.dob} onChange={handleInputChange} className="w-full p-2 bg-gray-900 border border-amber-500/30 rounded-md text-amber-50" />
+              <div className={mode === 'numerology' ? "md:col-span-2" : ""}>
+                <label htmlFor="dob" className="block text-amber-200 mb-2 font-bold">{t('dob')}</label>
+                <input type="date" name="dob" id="dob" value={formData.dob} onChange={handleInputChange} className="w-full p-3 bg-gray-900 border border-amber-500/30 rounded-lg text-amber-50 focus:ring-1 focus:ring-amber-500" />
               </div>
-                <div>
-                  <label htmlFor="pob" className="block text-amber-200 mb-2">{t(mode === 'astrology' ? 'pob' : 'pobOptional')}</label>
-                  <input type="text" name="pob" id="pob" value={formData.pob} onChange={handleInputChange} className="w-full p-2 bg-gray-900 border border-amber-500/30 rounded-md text-amber-50" />
-                </div>
-                <div>
-                  <label htmlFor="tob" className="block text-amber-200 mb-2">{t(mode === 'astrology' ? 'tob' : 'tobOptional')}</label>
-                  <input type="time" name="tob" id="tob" value={formData.tob} onChange={handleInputChange} className="w-full p-2 bg-gray-900 border border-amber-500/30 rounded-md text-amber-50" />
-                </div>
+              
+              {mode === 'astrology' && (
+                <>
+                    <div>
+                      <label htmlFor="pob" className="block text-amber-200 mb-2 font-bold">{t('pob')}</label>
+                      <input type="text" name="pob" id="pob" value={formData.pob} onChange={handleInputChange} className="w-full p-3 bg-gray-900 border border-amber-500/30 rounded-lg text-amber-50 focus:ring-1 focus:ring-amber-500" placeholder="e.g. New York, USA" />
+                    </div>
+                    <div>
+                      <label htmlFor="tob" className="block text-amber-200 mb-2 font-bold">{t('tob')}</label>
+                      <input type="time" name="tob" id="tob" value={formData.tob} onChange={handleInputChange} className="w-full p-3 bg-gray-900 border border-amber-500/30 rounded-lg text-amber-50 focus:ring-1 focus:ring-amber-500" />
+                    </div>
+                </>
+              )}
+
               <div className="md:col-span-2 text-center">
-                  <Button type="submit" disabled={isLoading} className="mt-4">
+                  <Button type="submit" disabled={isLoading} className="mt-4 w-full md:w-auto px-12">
                       {isLoading ? t('generating') : t('getMy', { featureName })}
                   </Button>
               </div>
             </form>
-            {error && <p className="text-red-400 text-center mb-4">{error}</p>}
+            {error && <p className="text-red-400 text-center mb-4 bg-red-900/20 p-2 rounded">{error}</p>}
           </div>
         </Card>
         
         {(isLoading || reading) && (
-          <Card className="mt-8">
+          <Card className="mt-8 animate-fade-in-up">
               <div className="p-6">
                   <h3 className="text-2xl font-semibold text-amber-300 mb-4 text-center">{t('yourSummary', { featureName })}</h3>
                   {isLoading && <Loader />}
@@ -129,10 +140,10 @@ const NumerologyAstrology: React.FC<NumerologyAstrologyProps> = ({ mode }) => {
                           {!isPaid ? (
                               <div className="grid md:grid-cols-2 gap-8 items-center">
                                   <div className="bg-black/20 p-4 rounded-lg border border-amber-500/20">
-                                      <img src={chartUrl} alt={`${featureName} Chart`} className="w-full rounded-md" />
+                                      <img src={chartUrl} alt={`${featureName} Chart`} className="w-full rounded-md shadow-lg" />
                                   </div>
                                   <div className="space-y-4 text-amber-100">
-                                      <p className="whitespace-pre-wrap">{reading}</p>
+                                      <div className="whitespace-pre-wrap italic font-lora border-l-2 border-amber-500/30 pl-4">{reading}</div>
                                       <div className="pt-4 border-t border-amber-500/20">
                                           <Button onClick={handleReadMore} className="w-full bg-gradient-to-r from-amber-600 to-maroon-700 border-amber-400 shadow-[0_0_20px_rgba(251,191,36,0.4)]">
                                             {t('readMore')}
