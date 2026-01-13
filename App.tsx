@@ -1,17 +1,18 @@
-import React, { useState, useCallback } from 'react';
+
+import React, { useState, useCallback, useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Home from './components/Home';
 import Palmistry from './components/Palmistry';
 import Login from './components/Login';
 import Header from './components/Header';
 import Footer from './components/Footer';
-import Placeholder from './components/Placeholder';
 import Remedy from './components/Remedy';
 import FaceReading from './components/FaceReading';
 import AdminLanding from './components/AdminLanding';
 import AdminConfig from './components/AdminConfig';
 import NumerologyAstrology from './components/NumerologyAstrology';
 import Tarot from './components/Tarot';
+import { checkSystemIntegrity } from './services/security';
 
 // Protected Route Wrapper
 interface ProtectedRouteProps {
@@ -42,7 +43,14 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children, role }) => {
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userRole, setUserRole] = useState<'admin' | 'user' | null>(null);
+  const [isSecure, setIsSecure] = useState(true);
   const location = useLocation();
+
+  useEffect(() => {
+    // Perform Security Check on Mount
+    const secure = checkSystemIntegrity();
+    setIsSecure(secure);
+  }, []);
 
   const handleLoginSuccess = useCallback((username: string) => {
     if (username === 'rocky' || username === 'Minti') {
@@ -57,6 +65,16 @@ function App() {
     setIsAuthenticated(false);
     setUserRole(null);
   }, []);
+
+  if (!isSecure) {
+    return (
+        <div className="min-h-screen bg-black flex flex-col items-center justify-center text-red-500 p-8 text-center font-mono">
+            <h1 className="text-3xl font-bold mb-4">SECURITY ALERT</h1>
+            <p>This device or browser environment is not secure.</p>
+            <p className="text-sm mt-2 opacity-70">Rooted device or automation detected.</p>
+        </div>
+    );
+  }
 
   // Show layout (header/footer) only when authenticated and not on login page
   const showLayout = isAuthenticated && location.pathname !== '/login';

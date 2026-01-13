@@ -1,3 +1,4 @@
+
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { HashRouter } from 'react-router-dom';
@@ -6,6 +7,7 @@ import './App.css';
 import { PaymentProvider } from './context/PaymentContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { DbProvider } from './context/DbContext';
+import { UserProvider } from './context/UserContext';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -18,9 +20,11 @@ root.render(
     <HashRouter>
       <LanguageProvider>
         <DbProvider>
-          <PaymentProvider>
-            <App />
-          </PaymentProvider>
+          <UserProvider>
+            <PaymentProvider>
+              <App />
+            </PaymentProvider>
+          </UserProvider>
         </DbProvider>
       </LanguageProvider>
     </HashRouter>
