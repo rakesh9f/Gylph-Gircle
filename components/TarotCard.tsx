@@ -1,11 +1,13 @@
+
 import React from 'react';
 import { MAJOR_ARCANA } from '../services/tarotData';
+import { useOffline } from '../context/OfflineProvider';
 
 // Helper to get unique icon path for each card
 const getCardIcon = (index: number) => {
   const icons = [
     "M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z", // Fool
-    "M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm-8 4a8 8 0 0 1 8-8 8 8 0 0 1 8 8 8 8 0 0 1-8-8 8 8 0 0 1-8-8z", // Magician
+    "M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm-8 4a8 8 0 0 1 8-8 8 8 0 0 1 8 8 8 8 0 0 1-8-8 8 8 0 0 1-8-8 8 8 0 0 1-8-8z", // Magician
     "M12 3a9 9 0 1 0 0 18 9 9 0 1 1 0-18z", // High Priestess
     "M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z", // Empress
     "M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11h-14zm14 3c0 .66-.34 1.29-.9 1.6l-5.3 2.8c-.46.25-1.12.25-1.6 0l-5.3-2.8A1.83 1.83 0 0 1 5 19h14z", // Emperor
@@ -39,15 +41,24 @@ interface TarotCardProps {
 
 const TarotCard: React.FC<TarotCardProps> = ({ card, isSelected, onClick, index }) => {
   const hue = (index * 25) % 360;
+  const { isOnline } = useOffline();
+
+  const handleClick = () => {
+    // Haptic Feedback for Mobile UX
+    if (navigator.vibrate) {
+       navigator.vibrate(20);
+    }
+    onClick();
+  };
   
   return (
     <div
-      onClick={onClick}
+      onClick={handleClick}
       className={`
         group relative aspect-[2/3.4] w-full cursor-pointer select-none
-        perspective-1000 z-10 hover:z-20
+        perspective-1000 z-10 
         transition-transform duration-500 ease-out
-        ${isSelected ? 'scale-110 z-30' : 'hover:-translate-y-4 hover:scale-105'}
+        ${isSelected ? 'scale-110 z-30' : 'hover:-translate-y-4 hover:scale-105 hover:z-20'}
       `}
     >
       <div 
@@ -58,6 +69,7 @@ const TarotCard: React.FC<TarotCardProps> = ({ card, isSelected, onClick, index 
             ? 'rotate-y-180 shadow-[0_0_40px_rgba(217,70,239,0.5)] border-neon-magenta' 
             : 'group-hover:shadow-[0_0_25px_rgba(245,158,11,0.4)] border-gold-400'
           }
+          ${!isOnline ? 'grayscale-[0.5]' : ''}
         `}
       >
         {/* Front of Card (Card Back Design) - Visible initially */}
@@ -79,6 +91,13 @@ const TarotCard: React.FC<TarotCardProps> = ({ card, isSelected, onClick, index 
              
              {/* Texture Overlay */}
              <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-40"></div>
+             
+             {/* Offline Indicator */}
+             {!isOnline && (
+                <div className="absolute bottom-2 right-2 text-xs text-gray-500 font-mono" title="Offline Mode">
+                    ⚡
+                </div>
+             )}
         </div>
 
         {/* Back of Card (The Reveal) - Hidden initially */}
