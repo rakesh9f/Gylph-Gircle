@@ -1,0 +1,105 @@
+import React, { useState, useCallback } from 'react';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import Home from './components/Home';
+import Palmistry from './components/Palmistry';
+import Login from './components/Login';
+import Header from './components/Header';
+import Footer from './components/Footer';
+import Placeholder from './components/Placeholder';
+import FaceReading from './components/FaceReading';
+import AdminLanding from './components/AdminLanding';
+import AdminConfig from './components/AdminConfig';
+import NumerologyAstrology from './components/NumerologyAstrology';
+import Tarot from './components/Tarot';
+
+// Protected Route Wrapper
+const ProtectedRoute = ({ children, isAuthenticated }: { children: React.ReactNode, isAuthenticated: boolean }) => {
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  return <>{children}</>;
+};
+
+// Admin Route Wrapper
+const AdminRoute = ({ children, role }: { children: React.ReactNode, role: 'admin' | 'user' | null }) => {
+  if (role !== 'admin') {
+    return <Navigate to="/home" replace />;
+  }
+  return <>{children}</>;
+};
+
+function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userRole, setUserRole] = useState<'admin' | 'user' | null>(null);
+  const location = useLocation();
+
+  const handleLoginSuccess = useCallback((username: string) => {
+    if (username === 'rocky' || username === 'Minti') {
+      setUserRole('admin');
+    } else {
+      setUserRole('user');
+    }
+    setIsAuthenticated(true);
+  }, []);
+
+  const handleLogout = useCallback(() => {
+    setIsAuthenticated(false);
+    setUserRole(null);
+  }, []);
+
+  // Show layout (header/footer) only when authenticated and not on login page
+  const showLayout = isAuthenticated && location.pathname !== '/login';
+
+  return (
+    <div className="bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 min-h-screen text-amber-50 flex flex-col font-lora">
+      {showLayout && <Header onLogout={handleLogout} />}
+      
+      <main className={`flex-grow ${showLayout ? 'container mx-auto px-4 py-8' : ''}`}>
+        <Routes>
+          {/* Login Route */}
+          <Route 
+            path="/login" 
+            element={
+              isAuthenticated ? <Navigate to="/home" replace /> : <Login onLoginSuccess={handleLoginSuccess} />
+            } 
+          />
+
+          {/* Protected Routes */}
+          <Route path="/home" element={<ProtectedRoute isAuthenticated={isAuthenticated}><Home /></ProtectedRoute>} />
+          <Route path="/palmistry" element={<ProtectedRoute isAuthenticated={isAuthenticated}><Palmistry /></ProtectedRoute>} />
+          <Route path="/numerology" element={<ProtectedRoute isAuthenticated={isAuthenticated}><NumerologyAstrology mode="numerology" /></ProtectedRoute>} />
+          <Route path="/astrology" element={<ProtectedRoute isAuthenticated={isAuthenticated}><NumerologyAstrology mode="astrology" /></ProtectedRoute>} />
+          <Route path="/tarot" element={<ProtectedRoute isAuthenticated={isAuthenticated}><Tarot /></ProtectedRoute>} />
+          <Route path="/face-reading" element={<ProtectedRoute isAuthenticated={isAuthenticated}><FaceReading /></ProtectedRoute>} />
+          <Route path="/remedy" element={<ProtectedRoute isAuthenticated={isAuthenticated}><Placeholder featureName="Remedy" /></ProtectedRoute>} />
+          
+          <Route 
+            path="/admin/config" 
+            element={
+              <ProtectedRoute isAuthenticated={isAuthenticated}>
+                <AdminRoute role={userRole}><AdminConfig /></AdminRoute>
+              </ProtectedRoute>
+            } 
+          />
+          
+          {/* Root Redirect */}
+          <Route 
+            path="/" 
+            element={
+              isAuthenticated 
+                ? (userRole === 'admin' ? <AdminLanding /> : <Navigate to="/home" replace />) 
+                : <Navigate to="/login" replace />
+            } 
+          />
+
+          {/* Catch All */}
+          <Route path="*" element={<Navigate to={isAuthenticated ? "/home" : "/login"} replace />} />
+        </Routes>
+      </main>
+      
+      {showLayout && <Footer />}
+    </div>
+  );
+}
+
+export default App;

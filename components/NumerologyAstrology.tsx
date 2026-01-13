@@ -1,0 +1,162 @@
+
+import React, { useState, useCallback } from 'react';
+import { Link } from 'react-router-dom';
+import { getAstroNumeroReading } from '../services/geminiService';
+import Button from './shared/Button';
+import Loader from './shared/Loader';
+import Card from './shared/Card';
+import Modal from './shared/Modal';
+import PaymentGateway from './PaymentGateway';
+import { useTranslation } from '../hooks/useTranslation';
+
+interface NumerologyAstrologyProps {
+  mode: 'numerology' | 'astrology';
+}
+
+const NumerologyAstrology: React.FC<NumerologyAstrologyProps> = ({ mode }) => {
+  const [formData, setFormData] = useState({
+    name: '',
+    dob: '',
+    pob: '',
+    tob: '',
+  });
+  const [reading, setReading] = useState<string>('');
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string>('');
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState<boolean>(false);
+  const [isPaid, setIsPaid] = useState<boolean>(false);
+  const { t } = useTranslation();
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setError('');
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const validateForm = () => {
+    if (!formData.name || !formData.dob) {
+        return 'Name and Date of Birth are required.';
+    }
+    if (mode === 'astrology' && (!formData.pob || !formData.tob)) {
+        return 'Place and Time of Birth are required for Astrology.';
+    }
+    return '';
+  }
+
+  const handleGetReading = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    const validationError = validateForm();
+    if (validationError) {
+        setError(validationError);
+        return;
+    }
+
+    setIsLoading(true);
+    setReading('');
+    setError('');
+    setIsPaid(false);
+
+    try {
+      const result = await getAstroNumeroReading({ mode, ...formData });
+      setReading(result);
+    } catch (err: any) {
+      setError(`Failed to get reading: ${err.message}. Please try again.`);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [formData, mode]);
+  
+  const handlePaymentSuccess = () => {
+    setIsPaid(true);
+    setIsPaymentModalOpen(false);
+  };
+
+  const featureName = mode === 'astrology' ? t('astrology') : t('numerology');
+  const featureTitle = mode === 'astrology' ? t('astrologyReading') : t('numerologyReading');
+  const chartUrl = mode === 'astrology' 
+    ? 'https://i.imgur.com/b4H801o.png' // Kundali chart
+    : 'https://i.imgur.com/v8kCV87.png'; // Numerology chart
+
+  return (
+    <>
+      <Modal isVisible={isPaymentModalOpen} onClose={() => setIsPaymentModalOpen(false)}>
+        <PaymentGateway onPaymentSuccess={handlePaymentSuccess} />
+      </Modal>
+      <div className="max-w-4xl mx-auto">
+          <Link to="/home" className="inline-flex items-center text-amber-200 hover:text-amber-400 transition-colors mb-4 group">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 transform group-hover:-translate-x-1 transition-transform" fill="none" viewBox="0 0 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              {t('backToHome')}
+          </Link>
+        <Card>
+          <div className="p-6">
+            <h2 className="text-3xl font-bold text-center text-amber-300 mb-6">{featureTitle}</h2>
+            <p className="text-center text-amber-100 mb-8">
+              {t('enterDetailsPrompt', { featureName: featureName.toLowerCase() })}
+            </p>
+
+            <form onSubmit={handleGetReading} className="grid md:grid-cols-2 gap-6 mb-8">
+              <div>
+                <label htmlFor="name" className="block text-amber-200 mb-2">{t('fullName')}</label>
+                <input type="text" name="name" id="name" value={formData.name} onChange={handleInputChange} className="w-full p-2 bg-gray-900 border border-amber-500/30 rounded-md text-amber-50" />
+              </div>
+              <div>
+                <label htmlFor="dob" className="block text-amber-200 mb-2">{t('dob')}</label>
+                <input type="date" name="dob" id="dob" value={formData.dob} onChange={handleInputChange} className="w-full p-2 bg-gray-900 border border-amber-500/30 rounded-md text-amber-50" />
+              </div>
+                <div>
+                  <label htmlFor="pob" className="block text-amber-200 mb-2">{t(mode === 'astrology' ? 'pob' : 'pobOptional')}</label>
+                  <input type="text" name="pob" id="pob" value={formData.pob} onChange={handleInputChange} className="w-full p-2 bg-gray-900 border border-amber-500/30 rounded-md text-amber-50" />
+                </div>
+                <div>
+                  <label htmlFor="tob" className="block text-amber-200 mb-2">{t(mode === 'astrology' ? 'tob' : 'tobOptional')}</label>
+                  <input type="time" name="tob" id="tob" value={formData.tob} onChange={handleInputChange} className="w-full p-2 bg-gray-900 border border-amber-500/30 rounded-md text-amber-50" />
+                </div>
+              <div className="md:col-span-2 text-center">
+                  <Button type="submit" disabled={isLoading} className="mt-4">
+                      {isLoading ? t('generating') : t('getMy', { featureName })}
+                  </Button>
+              </div>
+            </form>
+            {error && <p className="text-red-400 text-center mb-4">{error}</p>}
+          </div>
+        </Card>
+        
+        {(isLoading || reading) && (
+          <Card className="mt-8">
+              <div className="p-6">
+                  <h3 className="text-2xl font-semibold text-amber-300 mb-4 text-center">{t('yourSummary', { featureName })}</h3>
+                  {isLoading && <Loader />}
+                  {reading && (
+                      <div className="grid md:grid-cols-2 gap-8 items-center">
+                          <div className="bg-black/20 p-4 rounded-lg border border-amber-500/20">
+                              <img src={chartUrl} alt={`${featureName} Chart`} className="w-full rounded-md" />
+                          </div>
+                          <div className="space-y-4 text-amber-100">
+                              <p className="whitespace-pre-wrap">{reading}</p>
+                              <div className="pt-4 border-t border-amber-500/20">
+                                  {!isPaid ? (
+                                    <Button onClick={() => setIsPaymentModalOpen(true)} className="w-full">{t('readMore')}</Button>
+                                  ) : (
+                                    <div className="w-full text-center">
+                                      <p className="text-green-400 font-bold mb-4">{t('paymentSuccessful')}</p>
+                                      <div className="flex gap-4">
+                                          <Button className="w-full" onClick={() => alert('Downloading PDF...')}>{t('downloadPDF')}</Button>
+                                          <Button className="w-full" onClick={() => alert('Emailing report...')}>{t('emailReport')}</Button>
+                                      </div>
+                                    </div>
+                                  )}
+                              </div>
+                          </div>
+                      </div>
+                  )}
+              </div>
+          </Card>
+        )}
+
+      </div>
+    </>
+  );
+};
+
+export default NumerologyAstrology;
