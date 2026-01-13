@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation, Link } from 'react-router-dom';
-import { GoogleOAuthProvider } from '@react-oauth/google';
+// Removed GoogleOAuthProvider to prevent "invalid_client" error on load
 import Home from './components/Home';
 import Palmistry from './components/Palmistry';
 import Login from './components/Login';
@@ -32,9 +32,6 @@ import ReferralProgram from './components/ReferralProgram';
 import Leaderboard from './components/Leaderboard';
 import LanguageSwitcher from './components/LanguageSwitcher';
 
-// Dummy Client ID for UI demonstration. In production, this comes from env.
-const GOOGLE_CLIENT_ID = "63748291465-mockclientid.apps.googleusercontent.com";
-
 // Protected Route Wrapper
 interface ProtectedRouteProps {
   children?: React.ReactNode;
@@ -62,9 +59,10 @@ function App() {
   useEffect(() => {
     // Basic security checks
     setIsSecure(checkSystemIntegrity());
-    runLeakCheck(); // Check for leaked secrets in memory
+    runLeakCheck(); 
     
-    console.log("App Initialized. Admin Seeding Completed.");
+    // Explicitly seed DB on mount
+    dbService.forceSeedAdmins();
   }, []);
 
   if (!isSecure) {
@@ -76,7 +74,6 @@ function App() {
   const showLayout = isAuthenticated && !isAuthPage && !isAdminPage;
 
   return (
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
     <AccessibilityProvider>
       <AnalyticsProvider>
         <PushNotifications>
@@ -110,7 +107,7 @@ function App() {
                 <Route path="/login" element={isAuthenticated ? <Navigate to="/home" replace /> : <Login />} />
                 <Route path="/register" element={isAuthenticated ? <Navigate to="/home" replace /> : <Register />} />
                 
-                {/* ADMIN - DB BACKED + HASHED FALLBACK */}
+                {/* ADMIN - TRIPLE FALLBACK */}
                 <Route path="/master-login" element={<MasterLogin />} />
                 <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
                 <Route path="/admin/config" element={<AdminRoute><AdminConfig /></AdminRoute>} />
@@ -138,7 +135,6 @@ function App() {
         </PushNotifications>
       </AnalyticsProvider>
     </AccessibilityProvider>
-    </GoogleOAuthProvider>
   );
 }
 
