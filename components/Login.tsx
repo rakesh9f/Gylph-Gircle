@@ -5,9 +5,10 @@ import Button from './shared/Button';
 import Card from './shared/Card';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from '../hooks/useTranslation';
+import GoogleAuth from './GoogleAuth';
 
 interface LoginProps {
-    onLoginSuccess?: (username: string) => void; // Kept for backward compat if App.tsx passes it
+    onLoginSuccess?: (username: string) => void;
 }
 
 const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
@@ -21,7 +22,6 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     e.preventDefault();
     try {
         await login(email, password);
-        // If prop provided (from old App structure), call it, otherwise navigate
         if (onLoginSuccess) onLoginSuccess(email);
         navigate('/home');
     } catch (err) {
@@ -36,6 +36,18 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
           <div className="text-center mb-8">
              <h1 className="text-4xl font-cinzel font-bold text-amber-400 drop-shadow-lg mb-2">{t('glyphCircle')}</h1>
              <p className="text-amber-100/60 font-lora italic">{t('enterCircle')}</p>
+          </div>
+
+          <div className="mb-6">
+              <GoogleAuth />
+              <div className="relative my-6">
+                  <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-gray-700"></div>
+                  </div>
+                  <div className="relative flex justify-center text-sm">
+                      <span className="px-2 bg-black/80 text-gray-400">{t('orContinueWith')}</span>
+                  </div>
+              </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">

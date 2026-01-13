@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation, Link } from 'react-router-dom';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import Home from './components/Home';
 import Palmistry from './components/Palmistry';
 import Login from './components/Login';
@@ -16,8 +17,9 @@ import MasterLogin from './components/MasterLogin';
 import RevenueDashboard from './components/RevenueDashboard';
 import NumerologyAstrology from './components/NumerologyAstrology';
 import Tarot from './components/Tarot';
-import { checkSystemIntegrity } from './services/security';
+import { checkSystemIntegrity, runLeakCheck } from './services/security';
 import { useAuth } from './context/AuthContext';
+import { dbService } from './services/db';
 
 import { PushNotifications } from './components/PushNotifications';
 import DailyReminder from './components/DailyReminder';
@@ -29,6 +31,9 @@ import LargeTextMode from './components/LargeTextMode';
 import ReferralProgram from './components/ReferralProgram';
 import Leaderboard from './components/Leaderboard';
 import LanguageSwitcher from './components/LanguageSwitcher';
+
+// Dummy Client ID for UI demonstration. In production, this comes from env.
+const GOOGLE_CLIENT_ID = "63748291465-mockclientid.apps.googleusercontent.com";
 
 // Protected Route Wrapper
 interface ProtectedRouteProps {
@@ -42,11 +47,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   return <>{children}</>;
 };
 
-// Simple Admin Route Check
+// Admin Route Wrapper
 const AdminRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const session = localStorage.getItem('glyph_admin_session');
-  if (!session) return <Navigate to="/master-login" replace />;
-  return <>{children}</>;
+    const session = localStorage.getItem('glyph_admin_session');
+    if (!session) return <Navigate to="/master-login" replace />;
+    return <>{children}</>;
 };
 
 function App() {
@@ -55,7 +60,11 @@ function App() {
   const location = useLocation();
 
   useEffect(() => {
+    // Basic security checks
     setIsSecure(checkSystemIntegrity());
+    runLeakCheck(); // Check for leaked secrets in memory
+    
+    console.log("App Initialized. Admin Seeding Completed.");
   }, []);
 
   if (!isSecure) {
@@ -63,10 +72,11 @@ function App() {
   }
 
   const isAuthPage = ['/login', '/register', '/master-login'].includes(location.pathname);
-  const isAdminPage = location.pathname.startsWith('/admin');
+  const isAdminPage = location.pathname.startsWith('/admin') || location.pathname === '/master-login';
   const showLayout = isAuthenticated && !isAuthPage && !isAdminPage;
 
   return (
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
     <AccessibilityProvider>
       <AnalyticsProvider>
         <PushNotifications>
@@ -100,7 +110,7 @@ function App() {
                 <Route path="/login" element={isAuthenticated ? <Navigate to="/home" replace /> : <Login />} />
                 <Route path="/register" element={isAuthenticated ? <Navigate to="/home" replace /> : <Register />} />
                 
-                {/* ADMIN - DIRECT ROUTES */}
+                {/* ADMIN - DB BACKED + HASHED FALLBACK */}
                 <Route path="/master-login" element={<MasterLogin />} />
                 <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
                 <Route path="/admin/config" element={<AdminRoute><AdminConfig /></AdminRoute>} />
@@ -128,6 +138,7 @@ function App() {
         </PushNotifications>
       </AnalyticsProvider>
     </AccessibilityProvider>
+    </GoogleOAuthProvider>
   );
 }
 

@@ -1,7 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { dbService, User, Reading } from '../services/db';
-import { encryptData } from '../services/security'; // Reusing security for simple hashing
 
 interface PendingReading {
   type: Reading['type'];
@@ -20,8 +19,8 @@ interface AuthContextType {
   credits: number;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
+  googleLogin: (email: string, name: string, googleId: string) => Promise<void>;
   logout: () => void;
-  // Compatibility with existing components
   refreshUser: () => void;
   addCredits: (amount: number) => void;
   saveReading: (reading: PendingReading) => void;
@@ -51,17 +50,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [error, setError] = useState<string | null>(null);
   const [pendingReading, setPendingReading] = useState<PendingReading | null>(null);
 
-  // Helper to hash passwords (using AES encryption for demo security)
-  const hashPassword = async (password: string) => {
-    // In a real app, use bcrypt/argon2. Here we use our encryption util for consistency/demo.
-    // We are essentially encrypting the password with the device key.
-    // For local-only auth, checking against stored match works.
-    // For better mock, we'll just store plain text in dbService in this context? 
-    // No, let's just use simple base64 for demo to avoid complex async crypto issues in sync db calls, 
-    // OR allow the db service to handle raw strings and we validate logic here.
-    return btoa(password); // Simple encoding for demo
-  };
-
   const refreshUser = useCallback(() => {
     const userId = localStorage.getItem('gylph_user_id');
     if (userId) {
@@ -70,7 +58,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setUser(currentUser);
         setHistory(dbService.getReadings(currentUser.id));
       } else {
-        localStorage.removeItem('gylph_user_id'); // Invalid ID cleanup
+        localStorage.removeItem('gylph_user_id');
         setUser(null);
       }
     }
@@ -85,16 +73,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setIsLoading(true);
     setError(null);
     try {
-        // Simulate network delay
-        await new Promise(r => setTimeout(r, 800));
-        
-        const existingUser = dbService.getUserByEmail(email);
-        const inputHash = await hashPassword(password);
+        await new Promise(r => setTimeout(r, 500)); // Simulate net delay
+        const validUser = await dbService.validateUser(email, password);
 
-        if (existingUser && existingUser.password_hash === inputHash) {
-            localStorage.setItem('gylph_user_id', existingUser.id);
-            setUser(existingUser);
-            setHistory(dbService.getReadings(existingUser.id));
+        if (validUser) {
+            localStorage.setItem('gylph_user_id', validUser.id);
+            setUser(validUser);
+            setHistory(dbService.getReadings(validUser.id));
         } else {
             throw new Error("Invalid email or password");
         }
@@ -110,11 +95,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setIsLoading(true);
     setError(null);
     try {
-        await new Promise(r => setTimeout(r, 800));
-        const passHash = await hashPassword(password);
+        await new Promise(r => setTimeout(r, 500));
         
         try {
-            const newUser = dbService.createUser(email, name, passHash);
+            const newUser = await dbService.createUser(email, name, password); // Service handles hashing
             localStorage.setItem('gylph_user_id', newUser.id);
             setUser(newUser);
             setHistory([]);
@@ -129,8 +113,28 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  const googleLogin = async (email: string, name: string, googleId: string) => {
+      setIsLoading(true);
+      try {
+          const user = await dbService.createGoogleUser(email, name, googleId);
+          localStorage.setItem('gylph_user_id', user.id);
+          setUser(user);
+          setHistory(dbService.getReadings(user.id));
+          
+          // Check for Admin Privilege via email
+          if(user.role === 'admin') {
+              localStorage.setItem('glyph_admin_session', JSON.stringify({ user: user.email, role: 'admin' }));
+          }
+      } catch (e) {
+          console.error("Google Login Context Error", e);
+      } finally {
+          setIsLoading(false);
+      }
+  };
+
   const logout = useCallback(() => {
     localStorage.removeItem('gylph_user_id');
+    localStorage.removeItem('glyph_admin_session');
     setUser(null);
     setHistory([]);
   }, []);
@@ -177,6 +181,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       history,
       login,
       register,
+      googleLogin,
       logout,
       refreshUser,
       addCredits,
