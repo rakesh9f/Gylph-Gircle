@@ -16,6 +16,11 @@ import Tarot from './components/Tarot';
 import { checkSystemIntegrity } from './services/security';
 import { useAuth } from './context/AuthContext';
 
+// Notification System
+import { PushNotifications } from './components/PushNotifications';
+import DailyReminder from './components/DailyReminder';
+import BadgeCounter from './components/BadgeCounter';
+
 // Protected Route Wrapper
 interface ProtectedRouteProps {
   children?: React.ReactNode;
@@ -74,56 +79,66 @@ function App() {
   const showLayout = isAuthenticated && !isAuthPage;
 
   return (
-    <div className="bg-midnight min-h-screen text-amber-50 flex flex-col font-lora overflow-x-hidden selection:bg-neon-magenta selection:text-white">
-      {showLayout && <Header onLogout={logout} />}
-      
-      <main className={`flex-grow ${showLayout ? 'container mx-auto px-4 py-8' : ''}`}>
-        <Routes>
-          {/* Public/Auth Routes */}
-          <Route 
-            path="/login" 
-            element={isAuthenticated ? <Navigate to="/home" replace /> : <Login />} 
-          />
-          <Route 
-            path="/register" 
-            element={isAuthenticated ? <Navigate to="/home" replace /> : <Register />} 
-          />
+    <PushNotifications>
+      <div className="bg-midnight min-h-screen text-amber-50 flex flex-col font-lora overflow-x-hidden selection:bg-neon-magenta selection:text-white">
+        {showLayout && <Header onLogout={logout} />}
+        
+        {/* Background Tasks & Overlays */}
+        {isAuthenticated && (
+           <>
+             <DailyReminder />
+             <BadgeCounter />
+           </>
+        )}
 
-          {/* Protected Routes */}
-          <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
-          <Route path="/palmistry" element={<ProtectedRoute><Palmistry /></ProtectedRoute>} />
-          <Route path="/numerology" element={<ProtectedRoute><NumerologyAstrology mode="numerology" /></ProtectedRoute>} />
-          <Route path="/astrology" element={<ProtectedRoute><NumerologyAstrology mode="astrology" /></ProtectedRoute>} />
-          <Route path="/tarot" element={<ProtectedRoute><Tarot /></ProtectedRoute>} />
-          <Route path="/face-reading" element={<ProtectedRoute><FaceReading /></ProtectedRoute>} />
-          <Route path="/remedy" element={<ProtectedRoute><Remedy /></ProtectedRoute>} />
-          
-          <Route 
-            path="/admin/config" 
-            element={
-              <ProtectedRoute>
-                <AdminRoute><AdminConfig /></AdminRoute>
-              </ProtectedRoute>
-            } 
-          />
-          
-          {/* Root Redirect */}
-          <Route 
-            path="/" 
-            element={
-              isAuthenticated 
-                ? <Navigate to="/home" replace />
-                : <Navigate to="/login" replace />
-            } 
-          />
+        <main className={`flex-grow ${showLayout ? 'container mx-auto px-4 py-8' : ''}`}>
+          <Routes>
+            {/* Public/Auth Routes */}
+            <Route 
+              path="/login" 
+              element={isAuthenticated ? <Navigate to="/home" replace /> : <Login />} 
+            />
+            <Route 
+              path="/register" 
+              element={isAuthenticated ? <Navigate to="/home" replace /> : <Register />} 
+            />
 
-          {/* Catch All */}
-          <Route path="*" element={<Navigate to={isAuthenticated ? "/home" : "/login"} replace />} />
-        </Routes>
-      </main>
-      
-      {showLayout && <Footer />}
-    </div>
+            {/* Protected Routes */}
+            <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+            <Route path="/palmistry" element={<ProtectedRoute><Palmistry /></ProtectedRoute>} />
+            <Route path="/numerology" element={<ProtectedRoute><NumerologyAstrology mode="numerology" /></ProtectedRoute>} />
+            <Route path="/astrology" element={<ProtectedRoute><NumerologyAstrology mode="astrology" /></ProtectedRoute>} />
+            <Route path="/tarot" element={<ProtectedRoute><Tarot /></ProtectedRoute>} />
+            <Route path="/face-reading" element={<ProtectedRoute><FaceReading /></ProtectedRoute>} />
+            <Route path="/remedy" element={<ProtectedRoute><Remedy /></ProtectedRoute>} />
+            
+            <Route 
+              path="/admin/config" 
+              element={
+                <ProtectedRoute>
+                  <AdminRoute><AdminConfig /></AdminRoute>
+                </ProtectedRoute>
+              } 
+            />
+            
+            {/* Root Redirect */}
+            <Route 
+              path="/" 
+              element={
+                isAuthenticated 
+                  ? <Navigate to="/home" replace />
+                  : <Navigate to="/login" replace />
+              } 
+            />
+
+            {/* Catch All */}
+            <Route path="*" element={<Navigate to={isAuthenticated ? "/home" : "/login"} replace />} />
+          </Routes>
+        </main>
+        
+        {showLayout && <Footer />}
+      </div>
+    </PushNotifications>
   );
 }
 
