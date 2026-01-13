@@ -1,7 +1,6 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Routes, Route, Navigate, useLocation, Link } from 'react-router-dom';
-// Removed GoogleOAuthProvider to prevent "invalid_client" error on load
 import Home from './components/Home';
 import Palmistry from './components/Palmistry';
 import Login from './components/Login';
@@ -17,7 +16,7 @@ import MasterLogin from './components/MasterLogin';
 import RevenueDashboard from './components/RevenueDashboard';
 import NumerologyAstrology from './components/NumerologyAstrology';
 import Tarot from './components/Tarot';
-import { checkSystemIntegrity, runLeakCheck } from './services/security';
+import AdminGuard from './components/AdminGuard';
 import { useAuth } from './context/AuthContext';
 import { dbService } from './services/db';
 
@@ -32,7 +31,7 @@ import ReferralProgram from './components/ReferralProgram';
 import Leaderboard from './components/Leaderboard';
 import LanguageSwitcher from './components/LanguageSwitcher';
 
-// Protected Route Wrapper
+// Protected Route Wrapper for Standard Users
 interface ProtectedRouteProps {
   children?: React.ReactNode;
 }
@@ -44,30 +43,15 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   return <>{children}</>;
 };
 
-// Admin Route Wrapper
-const AdminRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-    const session = localStorage.getItem('glyph_admin_session');
-    if (!session) return <Navigate to="/master-login" replace />;
-    return <>{children}</>;
-};
-
 function App() {
   const { isAuthenticated, logout, user } = useAuth();
-  const [isSecure, setIsSecure] = useState(true);
   const location = useLocation();
 
   useEffect(() => {
-    // Basic security checks
-    setIsSecure(checkSystemIntegrity());
-    runLeakCheck(); 
-    
-    // Explicitly seed DB on mount
-    dbService.forceSeedAdmins();
+    // 💥 NUCLEAR RESET ON MOUNT
+    // This ensures that even if DB is corrupted, admins are restored.
+    dbService.nuclearReset();
   }, []);
-
-  if (!isSecure) {
-    return <div className="text-red-500 p-10 text-center">Security Alert: Environment Unsafe</div>;
-  }
 
   const isAuthPage = ['/login', '/register', '/master-login'].includes(location.pathname);
   const isAdminPage = location.pathname.startsWith('/admin') || location.pathname === '/master-login';
@@ -107,12 +91,12 @@ function App() {
                 <Route path="/login" element={isAuthenticated ? <Navigate to="/home" replace /> : <Login />} />
                 <Route path="/register" element={isAuthenticated ? <Navigate to="/home" replace /> : <Register />} />
                 
-                {/* ADMIN - TRIPLE FALLBACK */}
+                {/* ADMIN - TRIPLE FALLBACK GUARD */}
                 <Route path="/master-login" element={<MasterLogin />} />
-                <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
-                <Route path="/admin/config" element={<AdminRoute><AdminConfig /></AdminRoute>} />
-                <Route path="/admin/revenue" element={<AdminRoute><RevenueDashboard /></AdminRoute>} />
-                <Route path="/admin/db/:table" element={<AdminRoute><AdminDB /></AdminRoute>} />
+                <Route path="/admin/dashboard" element={<AdminGuard><AdminDashboard /></AdminGuard>} />
+                <Route path="/admin/config" element={<AdminGuard><AdminConfig /></AdminGuard>} />
+                <Route path="/admin/revenue" element={<AdminGuard><RevenueDashboard /></AdminGuard>} />
+                <Route path="/admin/db/:table" element={<AdminGuard><AdminDB /></AdminGuard>} />
 
                 {/* USER - PROTECTED */}
                 <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />

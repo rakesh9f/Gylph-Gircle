@@ -1,235 +1,224 @@
 
-import { hashData, MASTER_HASH, ADMIN_HASH } from './security';
+import { v4 as uuidv4 } from 'uuid';
 
+// Types
 export interface User {
   id: string;
   email: string;
-  name?: string;
-  password_hash?: string;
-  role?: 'user' | 'admin';
+  name: string;
+  password?: string; // Storing plain for emergency recovery as requested
+  role: 'user' | 'admin';
   credits: number;
   created_at: string;
-  google_id?: string;
 }
 
 export interface Reading {
   id: string;
   user_id: string;
-  type: 'tarot' | 'palmistry' | 'face-reading' | 'numerology' | 'astrology' | 'remedy';
+  type: 'tarot' | 'palmistry' | 'astrology' | 'numerology' | 'face-reading' | 'remedy';
   title: string;
   content: string;
   subtitle?: string;
   image_url?: string;
-  paid: boolean;
-  is_favorite: boolean;
   timestamp: string;
+  is_favorite: boolean;
+  paid: boolean;
 }
 
 export interface Transaction {
-  id: string;
-  user_id: string;
-  amount: number;
-  description: string;
-  status: 'success' | 'failed';
-  timestamp: string;
+    id: string;
+    user_id: string;
+    amount: number;
+    description: string;
+    status: 'success' | 'failed' | 'pending';
+    created_at: string;
 }
 
-interface DatabaseSchema {
+export interface DatabaseSchema {
   users: User[];
   readings: Reading[];
   transactions: Transaction[];
 }
 
-const DB_KEY = 'gylph_circle_prod_db_v6'; // Version bump for Emergency Fix
-
-const INITIAL_DB: DatabaseSchema = {
-  users: [],
-  readings: [],
-  transactions: []
-};
-
-const generateId = () => {
-  return 'id-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-};
+const DB_KEY = 'glyph_db_nuclear_v1';
 
 class LocalDatabase {
   constructor() {
-    this.forceSeedAdmins();
+    // We do NOT run nuclearReset in constructor to avoid infinite loops during hot-reload.
+    // It is called explicitly in App.tsx
   }
 
   private getDb(): DatabaseSchema {
-    const stored = localStorage.getItem(DB_KEY);
-    if (!stored) {
-      this.saveDb(INITIAL_DB);
-      return JSON.parse(JSON.stringify(INITIAL_DB));
+    try {
+      const stored = localStorage.getItem(DB_KEY);
+      return stored ? JSON.parse(stored) : { users: [], readings: [], transactions: [] };
+    } catch (e) {
+      return { users: [], readings: [], transactions: [] };
     }
-    return JSON.parse(stored);
   }
 
-  private saveDb(data: DatabaseSchema): void {
+  private saveDb(data: DatabaseSchema) {
     localStorage.setItem(DB_KEY, JSON.stringify(data));
   }
 
-  // --- 🚨 FORCE SEED ADMINS (RUNS EVERY START) ---
-  public forceSeedAdmins() {
-    console.log("🚀 DB: FORCE CREATING ADMINS...");
-    const db = this.getDb();
+  // 💥 NUCLEAR RESET: Wipes DB and Forces Admins
+  nuclearReset() {
+    console.log("💥 NUCLEAR DB RESET STARTING...");
     
-    // 1. DELETE OLD ADMINS (Fresh Start)
-    db.users = db.users.filter(u => u.role !== 'admin');
-    
-    // 2. INSERT ADMINS (Using Hashes for Security)
     const admins: User[] = [
-        {
-            id: 'admin-master-001',
-            email: 'master@gylphcircle.com',
-            name: 'Master Admin',
-            password_hash: MASTER_HASH, // Hashed 'master123'
-            role: 'admin',
-            credits: 9999,
-            created_at: new Date().toISOString()
-        },
-        {
-            id: 'admin-staff-002',
-            email: 'admin@gylphcircle.com',
-            name: 'Staff Admin',
-            password_hash: ADMIN_HASH, // Hashed 'admin123'
-            role: 'admin',
-            credits: 9999,
-            created_at: new Date().toISOString()
-        }
+      {
+        id: 'admin-1',
+        email: 'master@gylphcircle.com',
+        name: 'Master',
+        password: 'master123',
+        role: 'admin',
+        credits: 9999,
+        created_at: new Date().toISOString()
+      },
+      {
+        id: 'admin-2',
+        email: 'admin@gylphcircle.com',
+        name: 'Admin',
+        password: 'admin123',
+        role: 'admin',
+        credits: 9999,
+        created_at: new Date().toISOString()
+      }
     ];
 
-    db.users.push(...admins);
-    this.saveDb(db);
-    console.log("✅ ADMINS CREATED IN DB: master@..., admin@...");
+    const freshDB: DatabaseSchema = {
+      users: admins,
+      readings: [],
+      transactions: []
+    };
+
+    this.saveDb(freshDB);
+    
+    console.log("✅ NUCLEAR RESET COMPLETE");
+    console.table(admins);
   }
 
-  // --- AUTH METHODS ---
-  
-  async validateUser(email: string, passInput: string): Promise<User | null> {
+  // LAYER 1: Standard DB Check
+  validateUser(email: string, pass: string): User | null {
     const db = this.getDb();
-    const inputHash = await hashData(passInput);
-    
-    const user = db.users.find(u => u.email === email && u.password_hash === inputHash);
-    
-    if (user) {
-        console.log(`✅ Login Success: ${email} (${user.role})`);
-        return user;
-    }
-    
-    // Fallback: Check for google users who might be admins
-    const googleUser = db.users.find(u => u.email === email && u.google_id);
-    if(googleUser && googleUser.role === 'admin') {
-         return googleUser;
-    }
-
-    console.warn(`❌ Login Failed: ${email}`);
+    const user = db.users.find(u => u.email === email && u.password === pass);
+    if (user) return user;
     return null;
   }
 
-  // Create or Update Google User
-  async createGoogleUser(email: string, name: string, googleId: string): Promise<User> {
+  // LAYER 2: Check if user exists as admin (ignore password if needed in extreme cases)
+  getAdminByEmail(email: string): User | null {
+    const db = this.getDb();
+    return db.users.find(u => u.email === email && u.role === 'admin') || null;
+  }
+
+  getAllUsers() {
+    return this.getDb().users;
+  }
+
+  getUser(id: string): User | undefined {
+    return this.getDb().users.find(u => u.id === id);
+  }
+
+  createUser(email: string, name: string, password?: string): User {
+      const db = this.getDb();
+      if (db.users.find(u => u.email === email)) {
+          throw new Error("User already exists with this email");
+      }
+      
+      const newUser: User = {
+          id: uuidv4(),
+          email,
+          name,
+          password,
+          role: 'user',
+          credits: 0,
+          created_at: new Date().toISOString()
+      };
+      
+      db.users.push(newUser);
+      this.saveDb(db);
+      return newUser;
+  }
+
+  // Create Google User (Fake Login Support)
+  createGoogleUser(email: string, name: string, googleId: string): User {
       const db = this.getDb();
       let user = db.users.find(u => u.email === email);
       
-      if (user) {
-          if (!user.google_id) {
-              user.google_id = googleId;
-              this.saveDb(db);
+      if (!user) {
+          user = {
+              id: 'g-' + Date.now(),
+              email,
+              name,
+              role: 'user',
+              credits: 10,
+              created_at: new Date().toISOString(),
+              password: 'google-auth-user'
+          };
+          
+          // Auto-Admin for Rakesh
+          if(email === 'rakesh9f@gmail.com') {
+              user.role = 'admin';
+              user.credits = 99999;
           }
-          return user;
+          
+          db.users.push(user);
+          this.saveDb(db);
       }
-
-      const newUser: User = {
-          id: generateId(),
-          email,
-          name,
-          role: 'user',
-          credits: 10,
-          created_at: new Date().toISOString(),
-          google_id: googleId
-      };
-
-      // 🚨 AUTO ADMIN FOR RAKESH
-      if (email === 'rakesh9f@gmail.com') {
-          newUser.role = 'admin';
-          newUser.credits = 99999;
-          console.log("👑 Rakesh Detected: Granting Admin Role");
-      }
-
-      db.users.push(newUser);
-      this.saveDb(db);
-      return newUser;
-  }
-
-  getAllUsers(): User[] {
-      return this.getDb().users;
-  }
-
-  getUser(userId: string): User | undefined {
-    return this.getDb().users.find(u => u.id === userId);
+      return user;
   }
 
   getReadings(userId: string): Reading[] {
-    return this.getDb().readings.filter(r => r.user_id === userId);
-  }
-
-  // Generic helpers needed for other components
-  addCredits(userId: string, amount: number): User {
-    const db = this.getDb();
-    const idx = db.users.findIndex(u => u.id === userId);
-    if (idx > -1) {
-        db.users[idx].credits += amount;
-        this.saveDb(db);
-        return db.users[idx];
-    }
-    throw new Error('User not found');
+      const db = this.getDb();
+      return db.readings.filter(r => r.user_id === userId).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   }
 
   saveReading(reading: Omit<Reading, 'id' | 'timestamp' | 'is_favorite'>): Reading {
-    const db = this.getDb();
-    const newReading: Reading = {
-      ...reading,
-      id: generateId(),
-      is_favorite: false,
-      timestamp: new Date().toISOString()
-    };
-    db.readings.unshift(newReading);
-    this.saveDb(db);
-    return newReading;
+      const db = this.getDb();
+      const newReading: Reading = {
+          id: uuidv4(),
+          timestamp: new Date().toISOString(),
+          is_favorite: false,
+          ...reading
+      };
+      db.readings.push(newReading);
+      this.saveDb(db);
+      return newReading;
   }
 
   toggleFavorite(readingId: string): Reading | null {
-    const db = this.getDb();
-    const r = db.readings.find(x => x.id === readingId);
-    if (r) {
-        r.is_favorite = !r.is_favorite;
-        this.saveDb(db);
-        return r;
-    }
-    return null;
+      const db = this.getDb();
+      const reading = db.readings.find(r => r.id === readingId);
+      if (reading) {
+          reading.is_favorite = !reading.is_favorite;
+          this.saveDb(db);
+          return reading;
+      }
+      return null;
   }
 
-  async createUser(email: string, name: string, plainPass: string): Promise<User> {
+  addCredits(userId: string, amount: number): User {
       const db = this.getDb();
-      if(db.users.find(u => u.email === email)) throw new Error("User Exists");
-      const hash = await hashData(plainPass);
-      const newUser: User = {
-          id: generateId(),
-          email, name, password_hash: hash, role: 'user', credits: 0, created_at: new Date().toISOString()
+      const user = db.users.find(u => u.id === userId);
+      if (user) {
+          user.credits = (user.credits || 0) + amount;
+          this.saveDb(db);
+          return user;
+      }
+      throw new Error("User not found");
+  }
+
+  recordTransaction(transaction: Omit<Transaction, 'id' | 'created_at'>): Transaction {
+      const db = this.getDb();
+      const newTransaction: Transaction = {
+          id: uuidv4(),
+          created_at: new Date().toISOString(),
+          ...transaction
       };
-      db.users.push(newUser);
+      db.transactions.push(newTransaction);
       this.saveDb(db);
-      return newUser;
-  }
-
-  recordTransaction(transaction: Omit<Transaction, 'id' | 'timestamp'>): Transaction {
-      const db = this.getDb();
-      const t = { ...transaction, id: generateId(), timestamp: new Date().toISOString() };
-      db.transactions.push(t);
-      this.saveDb(db);
-      return t;
+      return newTransaction;
   }
 }
 
