@@ -1,7 +1,7 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from '../hooks/useTranslation';
+import type { Language } from '../context/LanguageContext';
 
 interface HeaderProps {
   onLogout: () => void;
@@ -20,17 +20,19 @@ const Header: React.FC<HeaderProps> = ({ onLogout }) => {
             <div className="relative">
                 <select 
                     value={language} 
-                    onChange={(e) => setLanguage(e.target.value as 'en' | 'hi' | 'fr' | 'es' | 'de' | 'ru' | 'ja' | 'zh')}
+                    onChange={(e) => setLanguage(e.target.value as Language)}
                     className="bg-gray-800 border border-amber-500/30 text-amber-100 text-sm rounded-lg focus:ring-amber-500 focus:border-amber-500 block w-full p-2.5 appearance-none"
                 >
                     <option value="en">English</option>
                     <option value="hi">हिन्दी</option>
-                    <option value="fr">Français</option>
+                    <option value="ta">தமிழ்</option>
+                    <option value="te">తెలుగు</option>
+                    <option value="bn">বাংলা</option>
+                    <option value="mr">मराठी</option>
                     <option value="es">Español</option>
-                    <option value="de">Deutsch</option>
-                    <option value="ru">Русский</option>
-                    <option value="ja">日本語</option>
-                    <option value="zh">中文</option>
+                    <option value="fr">Français</option>
+                    <option value="ar">العربية</option>
+                    <option value="pt">Português</option>
                 </select>
             </div>
             <button
