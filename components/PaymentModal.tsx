@@ -3,6 +3,8 @@ import Button from './shared/Button';
 import Loader from './shared/Loader';
 import { useTranslation } from '../hooks/useTranslation';
 import { useDb } from '../hooks/useDb';
+import { useUser } from '../context/UserContext';
+import { dbService } from '../services/db';
 
 interface PaymentModalProps {
   isVisible: boolean;
@@ -20,9 +22,9 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isVisible, onClose, onSucce
   const [upiStatus, setUpiStatus] = useState<'waiting' | 'scanning' | 'success'>('waiting');
   
   const { t } = useTranslation();
-  const { db } = useDb();
+  const { db } = useDb(); // Admin DB for merchant info
+  const { user, commitPendingReading, pendingReading, refreshUser } = useUser(); // User Context for persistence
 
-  // Fetch merchant info from DB
   const merchant = db.merchant_info?.[0] || { 
     paypal: 'payments@mysticalglyph.com', 
     upi: 'mysticalglyph@paytm',
@@ -40,11 +42,34 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isVisible, onClose, onSucce
 
   if (!isVisible) return null;
 
+  const handlePaymentCompletion = () => {
+    if (user) {
+      // 1. Record Transaction
+      dbService.recordTransaction({
+        user_id: user.id,
+        amount: parseFloat(price.replace(/[^0-9.]/g, '')) || 9.99,
+        description: pendingReading ? `Unlock: ${pendingReading.title}` : 'Credit Purchase',
+        status: 'success'
+      });
+
+      // 2. Commit any pending reading to permanent DB
+      if (pendingReading) {
+        commitPendingReading();
+      }
+
+      // 3. Refresh user state
+      refreshUser();
+    }
+    
+    // 4. Trigger UI Success
+    onSuccess();
+  };
+
   const handleSuccess = () => {
     setIsLoading(true);
     setTimeout(() => {
       setIsLoading(false);
-      onSuccess();
+      handlePaymentCompletion();
     }, 2000);
   };
 
@@ -78,7 +103,9 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isVisible, onClose, onSucce
         <div className="bg-gradient-to-r from-gray-900 to-gray-800 p-6 border-b border-amber-500/20 flex justify-between items-center">
           <div>
             <h3 className="text-xl font-cinzel font-bold text-amber-400">{t('unlockReport')}</h3>
-            <p className="text-amber-200/60 text-sm">Secure Payment Gateway</p>
+            <p className="text-amber-200/60 text-sm">
+                {pendingReading ? `Unlock: ${pendingReading.title}` : 'Secure Payment Gateway'}
+            </p>
           </div>
           <button onClick={onClose} className="text-amber-200/50 hover:text-amber-200 transition-colors">
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">

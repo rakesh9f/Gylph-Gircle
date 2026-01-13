@@ -44,70 +44,74 @@ const TarotCard: React.FC<TarotCardProps> = ({ card, isSelected, onClick, index 
     <div
       onClick={onClick}
       className={`
-        group relative aspect-[2/3.4] w-full rounded-xl cursor-pointer select-none
-        transition-all duration-700 ease-out
-        ${isSelected ? 'scale-110 z-20' : 'hover:scale-105 hover:z-10'}
+        group relative aspect-[2/3.4] w-full cursor-pointer select-none
+        perspective-1000 z-10 hover:z-20
+        transition-transform duration-500 ease-out
+        ${isSelected ? 'scale-110 z-30' : 'hover:-translate-y-4 hover:scale-105'}
       `}
-      style={{ perspective: '1000px' }}
     >
       <div 
         className={`
-          relative w-full h-full rounded-xl transition-all duration-700 shadow-2xl
-          ${isSelected ? 'shadow-[0_0_50px_rgba(251,191,36,0.6)]' : 'shadow-[0_10px_20px_rgba(0,0,0,0.5)] group-hover:shadow-[0_0_25px_rgba(251,191,36,0.4)]'}
+          relative w-full h-full rounded-xl transition-all duration-700
+          transform-style-3d shadow-xl
+          ${isSelected 
+            ? 'rotate-y-180 shadow-[0_0_40px_rgba(217,70,239,0.5)] border-neon-magenta' 
+            : 'group-hover:shadow-[0_0_25px_rgba(245,158,11,0.4)] border-gold-400'
+          }
         `}
-        style={{ 
-           transform: isSelected ? 'rotateY(180deg)' : 'rotateY(0deg)',
-           transformStyle: 'preserve-3d'
-        }}
       >
-        {/* Front of Card (Card Back Design) */}
+        {/* Front of Card (Card Back Design) - Visible initially */}
         <div 
-            className="absolute inset-0 w-full h-full rounded-xl bg-gradient-to-br from-amber-900 via-black to-maroon-950 border-2 border-amber-600/50 flex items-center justify-center overflow-hidden"
-            style={{ backfaceVisibility: 'hidden' }}
+            className="absolute inset-0 w-full h-full rounded-xl backface-hidden flex items-center justify-center overflow-hidden border-2 border-gold-600/50 bg-indigo-deep"
         >
+             {/* Background Gradient */}
+             <div className="absolute inset-0 bg-gradient-to-br from-indigo-deep via-midnight to-mystic-900"></div>
+             
              {/* Mystical Pattern */}
-             <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-amber-500 via-transparent to-transparent animate-pulse"></div>
-             <div className="absolute inset-2 border border-amber-500/30 rounded-lg flex items-center justify-center">
-                <div className="w-16 h-16 rounded-full border-2 border-amber-500/50 flex items-center justify-center">
-                    <span className="text-2xl text-amber-500/50 font-cinzel">✦</span>
+             <div className="absolute inset-0 opacity-30 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-gold-500 via-transparent to-transparent group-hover:animate-pulse"></div>
+             
+             {/* Center Symbol */}
+             <div className="absolute inset-2 border border-gold-500/20 rounded-lg flex items-center justify-center">
+                <div className="w-16 h-16 rounded-full border-2 border-gold-500/50 flex items-center justify-center bg-midnight/80 backdrop-blur-sm shadow-[0_0_15px_rgba(245,158,11,0.2)] group-hover:shadow-[0_0_25px_rgba(245,158,11,0.6)] transition-shadow duration-500">
+                    <span className="text-3xl text-gold-400 font-cinzel animate-float">✦</span>
                 </div>
              </div>
-             {/* Subtle Texture */}
-             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-30"></div>
+             
+             {/* Texture Overlay */}
+             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-40"></div>
         </div>
 
-        {/* Back of Card (The Reveal) */}
+        {/* Back of Card (The Reveal) - Hidden initially */}
         <div 
-          className="absolute inset-0 w-full h-full rounded-xl bg-gradient-to-b from-gray-900 via-black to-gray-900 border-2 border-amber-400 overflow-hidden flex flex-col items-center justify-between p-2"
-          style={{ 
-            backfaceVisibility: 'hidden',
-            transform: 'rotateY(180deg)'
-          }}
+          className="absolute inset-0 w-full h-full rounded-xl bg-gradient-to-b from-indigo-deep via-midnight to-indigo-deep border-2 border-neon-magenta overflow-hidden flex flex-col items-center justify-between p-3 rotate-y-180 backface-hidden shadow-inner"
         >
+          {/* Neon Glow Container */}
+          <div className="absolute inset-0 opacity-20 bg-neon-magenta blur-xl"></div>
+          
           {/* Inner Decorative Frame */}
-          <div className="absolute inset-1.5 border border-amber-500/40 rounded-[6px] pointer-events-none flex flex-col justify-between py-1 px-1">
-             <div className="flex justify-between"><span className="text-[10px] text-amber-400">✦</span><span className="text-[10px] text-amber-400">✦</span></div>
-             <div className="flex justify-between"><span className="text-[10px] text-amber-400">✦</span><span className="text-[10px] text-amber-400">✦</span></div>
+          <div className="absolute inset-1.5 border border-mystic-500/40 rounded-[6px] pointer-events-none flex flex-col justify-between py-1 px-1 z-10">
+             <div className="flex justify-between"><span className="text-[10px] text-neon-magenta">✦</span><span className="text-[10px] text-neon-magenta">✦</span></div>
+             <div className="flex justify-between"><span className="text-[10px] text-neon-magenta">✦</span><span className="text-[10px] text-neon-magenta">✦</span></div>
           </div>
           
           {/* Top Number */}
-          <div className="font-cinzel text-amber-400 text-sm font-bold z-10 mt-2 drop-shadow-md">{card.number}</div>
+          <div className="font-cinzel text-gold-400 text-sm font-bold z-20 mt-1 drop-shadow-md">{card.number}</div>
   
           {/* Center Symbol with Glow */}
-          <div className="relative w-full flex-grow flex items-center justify-center z-10">
-               <div className="absolute inset-0 bg-gradient-to-t from-amber-500/10 to-transparent opacity-50"></div>
+          <div className="relative w-full flex-grow flex items-center justify-center z-20">
+               <div className="absolute inset-0 bg-gradient-to-t from-mystic-500/20 to-transparent opacity-60"></div>
                <div 
-                  className="w-16 h-16 rounded-full flex items-center justify-center bg-black/40 backdrop-blur-sm border border-amber-500/30 shadow-[0_0_20px_rgba(251,191,36,0.3)] animate-float"
-                  style={{ boxShadow: `0 0 20px hsla(${hue}, 70%, 50%, 0.4)` }}
+                  className="w-20 h-20 rounded-full flex items-center justify-center bg-midnight/60 backdrop-blur-md border border-neon-magenta/50 shadow-[0_0_20px_rgba(217,70,239,0.4)] animate-float"
+                  style={{ boxShadow: `0 0 25px hsla(${hue}, 80%, 60%, 0.3)` }}
                 >
-                    <svg viewBox="0 0 24 24" fill="currentColor" className="w-10 h-10 text-amber-200 drop-shadow-lg">
+                    <svg viewBox="0 0 24 24" fill="currentColor" className="w-12 h-12 text-gold-200 drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]">
                         <path d={getCardIcon(index)} />
                     </svg>
                </div>
           </div>
   
           {/* Bottom Name */}
-          <div className="font-cinzel text-amber-100 text-xs font-bold text-center z-10 uppercase tracking-widest w-full truncate px-1 mb-2 bg-gradient-to-r from-transparent via-amber-900/50 to-transparent py-1">
+          <div className="font-cinzel text-amber-50 text-xs font-bold text-center z-20 uppercase tracking-widest w-full truncate px-1 mb-2 bg-gradient-to-r from-transparent via-mystic-900/80 to-transparent py-1.5 border-t border-b border-mystic-500/20">
               {card.name}
           </div>
         </div>

@@ -1,0 +1,50 @@
+/* App.css - Mystical Theme Global Styles */
+
+body {
+  background-color: #0F0F23; /* Midnight Blue */
+  color: #fffbeb; /* Amber 50 */
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Custom Scrollbar for Webkit */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0F0F23; 
+}
+
+::-webkit-scrollbar-thumb {
+  background: #8B5CF6; /* Mystic Purple */
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #D946EF; /* Neon Magenta */
+}
+
+/* 3D Transform Utilities */
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.transform-style-3d {
+  transform-style: preserve-3d;
+}
+
+.backface-hidden {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.rotate-y-180 {
+  transform: rotateY(180deg);
+}
+
+/* Text Selection Glow */
+::selection {
+  background: #D946EF;
+  color: white;
+}

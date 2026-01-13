@@ -62,7 +62,7 @@ function App() {
   const showLayout = isAuthenticated && location.pathname !== '/login';
 
   return (
-    <div className="bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 min-h-screen text-amber-50 flex flex-col font-lora">
+    <div className="bg-midnight min-h-screen text-amber-50 flex flex-col font-lora overflow-x-hidden selection:bg-neon-magenta selection:text-white">
       {showLayout && <Header onLogout={handleLogout} />}
       
       <main className={`flex-grow ${showLayout ? 'container mx-auto px-4 py-8' : ''}`}>
