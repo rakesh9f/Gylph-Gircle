@@ -7,9 +7,10 @@ interface FullReportProps {
   reading: string;
   title: string;
   subtitle?: string;
+  imageUrl?: string;
 }
 
-const FullReport: React.FC<FullReportProps> = ({ reading, title, subtitle }) => {
+const FullReport: React.FC<FullReportProps> = ({ reading, title, subtitle, imageUrl }) => {
   const { t } = useTranslation();
 
   return (
@@ -27,17 +28,24 @@ const FullReport: React.FC<FullReportProps> = ({ reading, title, subtitle }) => 
             <h3 className="text-xl font-cinzel text-amber-200 mb-4 border-b border-amber-500/20 pb-2">{title}</h3>
             {subtitle && <p className="text-amber-500/70 text-xs font-bold uppercase tracking-widest mb-4">{subtitle}</p>}
             
-            <div className="text-amber-100/90 font-lora leading-relaxed space-y-4 text-justify">
-               <p className="italic">"{reading}"</p>
-               <div className="mt-4 pt-4 border-t border-amber-500/10 grid md:grid-cols-2 gap-4">
-                  <div>
-                    <strong className="text-amber-400 block mb-1">Key Insight</strong>
-                    <p className="text-sm text-amber-200/70">Transformation is imminent. Trust the process.</p>
-                  </div>
-                  <div>
-                    <strong className="text-amber-400 block mb-1">Actionable Advice</strong>
-                    <p className="text-sm text-amber-200/70">Take a leap of faith today.</p>
-                  </div>
+            <div className={`text-amber-100/90 font-lora leading-relaxed space-y-4 text-justify ${imageUrl ? 'md:flex md:gap-6' : ''}`}>
+               {imageUrl && (
+                   <div className="md:w-1/3 mb-4 md:mb-0 flex-shrink-0">
+                       <img src={imageUrl} alt="Chart" className="w-full rounded-lg border border-amber-500/20 shadow-lg" />
+                   </div>
+               )}
+               <div className={imageUrl ? 'md:w-2/3' : 'w-full'}>
+                   <p className="italic">"{reading}"</p>
+                   <div className="mt-4 pt-4 border-t border-amber-500/10 grid md:grid-cols-2 gap-4">
+                      <div>
+                        <strong className="text-amber-400 block mb-1">Key Insight</strong>
+                        <p className="text-sm text-amber-200/70">Transformation is imminent. Trust the process.</p>
+                      </div>
+                      <div>
+                        <strong className="text-amber-400 block mb-1">Actionable Advice</strong>
+                        <p className="text-sm text-amber-200/70">Take a leap of faith today.</p>
+                      </div>
+                   </div>
                </div>
             </div>
         </div>

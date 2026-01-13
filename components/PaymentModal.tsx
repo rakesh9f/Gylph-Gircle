@@ -22,7 +22,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isVisible, onClose, onSucce
   const { t } = useTranslation();
   const { db } = useDb();
 
-  // Fetch merchant info from DB or use fallback
+  // Fetch merchant info from DB
   const merchant = db.merchant_info?.[0] || { 
     paypal: 'payments@mysticalglyph.com', 
     upi: 'mysticalglyph@paytm',

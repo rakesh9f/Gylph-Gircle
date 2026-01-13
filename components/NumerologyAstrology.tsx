@@ -1,13 +1,12 @@
-
 import React, { useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { getAstroNumeroReading } from '../services/geminiService';
 import Button from './shared/Button';
 import Loader from './shared/Loader';
 import Card from './shared/Card';
-import Modal from './shared/Modal';
-import PaymentGateway from './PaymentGateway';
 import { useTranslation } from '../hooks/useTranslation';
+import { usePayment } from '../context/PaymentContext';
+import FullReport from './FullReport';
 
 interface NumerologyAstrologyProps {
   mode: 'numerology' | 'astrology';
@@ -23,9 +22,9 @@ const NumerologyAstrology: React.FC<NumerologyAstrologyProps> = ({ mode }) => {
   const [reading, setReading] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
-  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState<boolean>(false);
   const [isPaid, setIsPaid] = useState<boolean>(false);
   const { t } = useTranslation();
+  const { openPayment } = usePayment();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setError('');
@@ -65,9 +64,10 @@ const NumerologyAstrology: React.FC<NumerologyAstrologyProps> = ({ mode }) => {
     }
   }, [formData, mode]);
   
-  const handlePaymentSuccess = () => {
-    setIsPaid(true);
-    setIsPaymentModalOpen(false);
+  const handleReadMore = () => {
+    openPayment(() => {
+        setIsPaid(true);
+    });
   };
 
   const featureName = mode === 'astrology' ? t('astrology') : t('numerology');
@@ -78,9 +78,6 @@ const NumerologyAstrology: React.FC<NumerologyAstrologyProps> = ({ mode }) => {
 
   return (
     <>
-      <Modal isVisible={isPaymentModalOpen} onClose={() => setIsPaymentModalOpen(false)}>
-        <PaymentGateway onPaymentSuccess={handlePaymentSuccess} />
-      </Modal>
       <div className="max-w-4xl mx-auto">
           <Link to="/home" className="inline-flex items-center text-amber-200 hover:text-amber-400 transition-colors mb-4 group">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 transform group-hover:-translate-x-1 transition-transform" fill="none" viewBox="0 0 24" stroke="currentColor">
@@ -128,26 +125,28 @@ const NumerologyAstrology: React.FC<NumerologyAstrologyProps> = ({ mode }) => {
                   <h3 className="text-2xl font-semibold text-amber-300 mb-4 text-center">{t('yourSummary', { featureName })}</h3>
                   {isLoading && <Loader />}
                   {reading && (
-                      <div className="grid md:grid-cols-2 gap-8 items-center">
-                          <div className="bg-black/20 p-4 rounded-lg border border-amber-500/20">
-                              <img src={chartUrl} alt={`${featureName} Chart`} className="w-full rounded-md" />
-                          </div>
-                          <div className="space-y-4 text-amber-100">
-                              <p className="whitespace-pre-wrap">{reading}</p>
-                              <div className="pt-4 border-t border-amber-500/20">
-                                  {!isPaid ? (
-                                    <Button onClick={() => setIsPaymentModalOpen(true)} className="w-full">{t('readMore')}</Button>
-                                  ) : (
-                                    <div className="w-full text-center">
-                                      <p className="text-green-400 font-bold mb-4">{t('paymentSuccessful')}</p>
-                                      <div className="flex gap-4">
-                                          <Button className="w-full" onClick={() => alert('Downloading PDF...')}>{t('downloadPDF')}</Button>
-                                          <Button className="w-full" onClick={() => alert('Emailing report...')}>{t('emailReport')}</Button>
+                      <div className="w-full">
+                          {!isPaid ? (
+                              <div className="grid md:grid-cols-2 gap-8 items-center">
+                                  <div className="bg-black/20 p-4 rounded-lg border border-amber-500/20">
+                                      <img src={chartUrl} alt={`${featureName} Chart`} className="w-full rounded-md" />
+                                  </div>
+                                  <div className="space-y-4 text-amber-100">
+                                      <p className="whitespace-pre-wrap">{reading}</p>
+                                      <div className="pt-4 border-t border-amber-500/20">
+                                          <Button onClick={handleReadMore} className="w-full bg-gradient-to-r from-amber-600 to-maroon-700 border-amber-400 shadow-[0_0_20px_rgba(251,191,36,0.4)]">
+                                            {t('readMore')}
+                                          </Button>
                                       </div>
-                                    </div>
-                                  )}
+                                  </div>
                               </div>
-                          </div>
+                          ) : (
+                              <FullReport 
+                                reading={reading} 
+                                title={t('yourSummary', { featureName })} 
+                                imageUrl={chartUrl}
+                              />
+                          )}
                       </div>
                   )}
               </div>

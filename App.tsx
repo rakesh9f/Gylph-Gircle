@@ -6,6 +6,7 @@ import Login from './components/Login';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import Placeholder from './components/Placeholder';
+import Remedy from './components/Remedy';
 import FaceReading from './components/FaceReading';
 import AdminLanding from './components/AdminLanding';
 import AdminConfig from './components/AdminConfig';
@@ -13,7 +14,12 @@ import NumerologyAstrology from './components/NumerologyAstrology';
 import Tarot from './components/Tarot';
 
 // Protected Route Wrapper
-const ProtectedRoute = ({ children, isAuthenticated }: { children: React.ReactNode, isAuthenticated: boolean }) => {
+interface ProtectedRouteProps {
+  children?: React.ReactNode;
+  isAuthenticated: boolean;
+}
+
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, isAuthenticated }) => {
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
@@ -21,7 +27,12 @@ const ProtectedRoute = ({ children, isAuthenticated }: { children: React.ReactNo
 };
 
 // Admin Route Wrapper
-const AdminRoute = ({ children, role }: { children: React.ReactNode, role: 'admin' | 'user' | null }) => {
+interface AdminRouteProps {
+  children?: React.ReactNode;
+  role: 'admin' | 'user' | null;
+}
+
+const AdminRoute: React.FC<AdminRouteProps> = ({ children, role }) => {
   if (role !== 'admin') {
     return <Navigate to="/home" replace />;
   }
@@ -71,7 +82,7 @@ function App() {
           <Route path="/astrology" element={<ProtectedRoute isAuthenticated={isAuthenticated}><NumerologyAstrology mode="astrology" /></ProtectedRoute>} />
           <Route path="/tarot" element={<ProtectedRoute isAuthenticated={isAuthenticated}><Tarot /></ProtectedRoute>} />
           <Route path="/face-reading" element={<ProtectedRoute isAuthenticated={isAuthenticated}><FaceReading /></ProtectedRoute>} />
-          <Route path="/remedy" element={<ProtectedRoute isAuthenticated={isAuthenticated}><Placeholder featureName="Remedy" /></ProtectedRoute>} />
+          <Route path="/remedy" element={<ProtectedRoute isAuthenticated={isAuthenticated}><Remedy /></ProtectedRoute>} />
           
           <Route 
             path="/admin/config" 

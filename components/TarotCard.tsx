@@ -5,7 +5,7 @@ import { MAJOR_ARCANA } from '../services/tarotData';
 const getCardIcon = (index: number) => {
   const icons = [
     "M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z", // Fool
-    "M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm-8 4a8 8 0 0 1 8-8 8 8 0 0 1 8 8 8 8 0 0 1-8 8 8 8 0 0 1-8-8z", // Magician
+    "M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm-8 4a8 8 0 0 1 8-8 8 8 0 0 1 8 8 8 8 0 0 1-8-8 8 8 0 0 1-8-8z", // Magician
     "M12 3a9 9 0 1 0 0 18 9 9 0 1 1 0-18z", // High Priestess
     "M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z", // Empress
     "M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11h-14zm14 3c0 .66-.34 1.29-.9 1.6l-5.3 2.8c-.46.25-1.12.25-1.6 0l-5.3-2.8A1.83 1.83 0 0 1 5 19h14z", // Emperor
@@ -19,7 +19,7 @@ const getCardIcon = (index: number) => {
     "M12 22L2 2h20L12 22z", // Hanged Man
     "M12 2c-4.97 0-9 4.03-9 9 0 4.17 2.84 7.67 6.69 8.69L12 22l2.31-2.31C18.16 18.67 21 15.17 21 11c0-4.97-4.03-9-9-9zm0 16c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z", // Death
     "M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94.63 1.5 1.98 2.63 3.61 2.96V19H7v2h10v-2h-4v-3.1c1.63-.33 2.98-1.46 3.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2zM7 8V7h2v3.06C8.16 9.57 7.45 8.86 7 8zm10 0c-.45.86-1.16 1.57-2 2.06V7h2v1z", // Temperance
-    "M19 3H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94.63 1.5 1.98 2.63 3.61 2.96V19H7v2h10v-2h-4v-3.1c1.63-.33 2.98-1.46 3.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2zM7 8V7h2v3.06C8.16 9.57 7.45 8.86 7 8zm10 0c-.45.86-1.16 1.57-2 2.06V7h2v1z", // Devil
+    "M19 3H5c-1.1 0-2 .9-2 2v1c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14l-5-5 1.41-1.41L12 14.17l3.59-3.59L17 12l-5 5z", // Devil
     "M11 21h-1l1-7H7.5c-.58 0-.57-.32-.38-.66.19-.34.05-.08.07-.12C8.48 10.94 10.42 7.54 13 3h1l-1 7h3.5c.49 0 .56.33.47.51l-.07.15C12.96 17.55 11 21 11 21z", // Tower
     "M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z", // Star
     "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z", // Moon
@@ -44,7 +44,7 @@ const TarotCard: React.FC<TarotCardProps> = ({ card, isSelected, onClick, index 
     <div
       onClick={onClick}
       className={`
-        group relative aspect-[2/3.4] w-full rounded-xl cursor-pointer perspective-1000 select-none
+        group relative aspect-[2/3.4] w-full rounded-xl cursor-pointer select-none
         transition-all duration-700 ease-out
         ${isSelected ? 'scale-110 z-20' : 'hover:scale-105 hover:z-10'}
       `}
@@ -52,7 +52,7 @@ const TarotCard: React.FC<TarotCardProps> = ({ card, isSelected, onClick, index 
     >
       <div 
         className={`
-          relative w-full h-full rounded-xl transition-all duration-700 transform-style-3d shadow-2xl
+          relative w-full h-full rounded-xl transition-all duration-700 shadow-2xl
           ${isSelected ? 'shadow-[0_0_50px_rgba(251,191,36,0.6)]' : 'shadow-[0_10px_20px_rgba(0,0,0,0.5)] group-hover:shadow-[0_0_25px_rgba(251,191,36,0.4)]'}
         `}
         style={{ 
@@ -62,7 +62,7 @@ const TarotCard: React.FC<TarotCardProps> = ({ card, isSelected, onClick, index 
       >
         {/* Front of Card (Card Back Design) */}
         <div 
-            className="absolute inset-0 w-full h-full rounded-xl backface-hidden bg-gradient-to-br from-amber-900 via-black to-maroon-950 border-2 border-amber-600/50 flex items-center justify-center overflow-hidden"
+            className="absolute inset-0 w-full h-full rounded-xl bg-gradient-to-br from-amber-900 via-black to-maroon-950 border-2 border-amber-600/50 flex items-center justify-center overflow-hidden"
             style={{ backfaceVisibility: 'hidden' }}
         >
              {/* Mystical Pattern */}
@@ -78,7 +78,7 @@ const TarotCard: React.FC<TarotCardProps> = ({ card, isSelected, onClick, index 
 
         {/* Back of Card (The Reveal) */}
         <div 
-          className="absolute inset-0 w-full h-full rounded-xl backface-hidden bg-gradient-to-b from-gray-900 via-black to-gray-900 border-2 border-amber-400 overflow-hidden flex flex-col items-center justify-between p-2"
+          className="absolute inset-0 w-full h-full rounded-xl bg-gradient-to-b from-gray-900 via-black to-gray-900 border-2 border-amber-400 overflow-hidden flex flex-col items-center justify-between p-2"
           style={{ 
             backfaceVisibility: 'hidden',
             transform: 'rotateY(180deg)'

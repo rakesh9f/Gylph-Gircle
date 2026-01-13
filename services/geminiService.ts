@@ -143,3 +143,24 @@ export const getTarotReading = async (cardName: string): Promise<string> => {
         throw new Error("Failed to generate reading from the AI model.");
     }
 };
+
+export const getRemedy = async (concern: string): Promise<string> => {
+    const ai = getAi();
+    const prompt = `You are a wise spiritual guide with knowledge of Vedic remedies, gemstones, and mantras. The user has the following concern: "${concern}". Provide a short, comforting, and mystical guidance or remedy (2-3 lines). Suggest a simple action, mantra, or perspective shift.`;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-3-flash-preview',
+            contents: prompt,
+        });
+
+        if (response.text) {
+            return response.text;
+        } else {
+            throw new Error("The model did not return a valid response.");
+        }
+    } catch (error) {
+        console.error("Error calling Gemini API:", error);
+        throw new Error("Failed to generate reading from the AI model.");
+    }
+};

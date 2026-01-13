@@ -1,12 +1,11 @@
-
 import React, { useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { getPalmReading } from '../services/geminiService';
 import Button from './shared/Button';
 import Loader from './shared/Loader';
-import Modal from './shared/Modal';
-import PaymentGateway from './PaymentGateway';
 import { useTranslation } from '../hooks/useTranslation';
+import { usePayment } from '../context/PaymentContext';
+import FullReport from './FullReport';
 
 const Palmistry: React.FC = () => {
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -14,9 +13,9 @@ const Palmistry: React.FC = () => {
   const [reading, setReading] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
-  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState<boolean>(false);
   const [isPaid, setIsPaid] = useState<boolean>(false);
   const { t } = useTranslation();
+  const { openPayment } = usePayment();
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -54,16 +53,14 @@ const Palmistry: React.FC = () => {
     }
   }, [imageFile]);
 
-  const handlePaymentSuccess = () => {
-    setIsPaid(true);
-    setIsPaymentModalOpen(false);
+  const handleReadMore = () => {
+    openPayment(() => {
+        setIsPaid(true);
+    });
   };
 
   return (
     <>
-      <Modal isVisible={isPaymentModalOpen} onClose={() => setIsPaymentModalOpen(false)}>
-        <PaymentGateway onPaymentSuccess={handlePaymentSuccess} />
-      </Modal>
       <div>
           <Link to="/home" className="inline-flex items-center text-amber-200 hover:text-amber-400 transition-colors mb-4 group">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 transform group-hover:-translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -106,22 +103,24 @@ const Palmistry: React.FC = () => {
                 {isLoading && <Loader />}
                 {error && <p className="text-red-400">{error}</p>}
                 {reading && (
-                  <div className="space-y-4 text-amber-100">
-                    <p className="whitespace-pre-wrap">{reading}</p>
-                      <div className="pt-4 border-t border-amber-500/20 flex flex-col sm:flex-row gap-4">
-                        {!isPaid ? (
-                          <Button onClick={() => setIsPaymentModalOpen(true)} className="w-full">{t('readMore')}</Button>
-                        ) : (
-                          <div className="w-full text-center">
-                            <p className="text-green-400 font-bold mb-4">{t('paymentSuccessful')}</p>
-                            <div className="flex gap-4">
-                                <Button className="w-full" onClick={() => alert('Downloading PDF...')}>{t('downloadPDF')}</Button>
-                                <Button className="w-full" onClick={() => alert('Emailing report...')}>{t('emailReport')}</Button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                  </div>
+                   <div className="space-y-4 text-amber-100 w-full">
+                       {!isPaid ? (
+                           <>
+                               <div className="relative text-amber-100 leading-relaxed font-lora text-lg italic bg-black/40 p-6 rounded-lg border border-amber-500/20 shadow-inner">
+                                   <span className="absolute top-2 left-2 text-4xl text-amber-500/20 font-serif">“</span>
+                                   {reading}
+                                   <span className="absolute bottom-[-10px] right-4 text-4xl text-amber-500/20 font-serif">”</span>
+                               </div>
+                               <div className="pt-4 border-t border-amber-500/20">
+                                   <Button onClick={handleReadMore} className="w-full bg-gradient-to-r from-amber-600 to-maroon-700 border-amber-400 shadow-[0_0_20px_rgba(251,191,36,0.4)]">
+                                       {t('readMore')}
+                                   </Button>
+                               </div>
+                           </>
+                       ) : (
+                           <FullReport reading={reading} title={t('aiPalmReading')} />
+                       )}
+                   </div>
                 )}
                 {!isLoading && !reading && !error && (
                   <p className="text-amber-200 opacity-60">{t('readingPlaceholder')}</p>

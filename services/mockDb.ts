@@ -104,12 +104,14 @@ export const getMockDb = (): MockDatabase => {
     if (storedDb) {
       return JSON.parse(storedDb);
     } else {
+      // First time load: initialize sessionStorage with the default DB
       const dbCopy = JSON.parse(JSON.stringify(MOCK_DATABASE));
       sessionStorage.setItem(DB_SESSION_KEY, JSON.stringify(dbCopy));
       return dbCopy;
     }
   } catch (error) {
     console.error("Failed to read mock DB from sessionStorage:", error);
+    // Fallback to default if storage fails
     return JSON.parse(JSON.stringify(MOCK_DATABASE));
   }
 };

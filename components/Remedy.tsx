@@ -1,15 +1,14 @@
 import React, { useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { getFaceReading } from '../services/geminiService';
+import { getRemedy } from '../services/geminiService';
 import Button from './shared/Button';
 import Loader from './shared/Loader';
 import { useTranslation } from '../hooks/useTranslation';
 import { usePayment } from '../context/PaymentContext';
 import FullReport from './FullReport';
 
-const FaceReading: React.FC = () => {
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+const Remedy: React.FC = () => {
+  const [concern, setConcern] = useState('');
   const [reading, setReading] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
@@ -17,41 +16,27 @@ const FaceReading: React.FC = () => {
   const { t } = useTranslation();
   const { openPayment } = usePayment();
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      setReading('');
-      setError('');
-      setIsPaid(false);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleGetReading = useCallback(async () => {
-    if (!imageFile) {
-      setError('Please upload an image of your face first.');
+  const handleGetGuidance = useCallback(async () => {
+    if (!concern.trim()) {
+      setError('Please describe your concern.');
       return;
     }
 
     setIsLoading(true);
     setReading('');
     setError('');
+    setIsPaid(false);
 
     try {
-      const result = await getFaceReading(imageFile);
+      const result = await getRemedy(concern);
       setReading(result);
     } catch (err: any) {
-      setError(`Failed to get reading: ${err.message}. Please try again.`);
+      setError(`Failed to get guidance: ${err.message}. Please try again.`);
     } finally {
       setIsLoading(false);
     }
-  }, [imageFile]);
-  
+  }, [concern]);
+
   const handleReadMore = () => {
     openPayment(() => {
         setIsPaid(true);
@@ -68,36 +53,25 @@ const FaceReading: React.FC = () => {
               {t('backToHome')}
           </Link>
           <div className="max-w-4xl mx-auto p-6 bg-gray-800 bg-opacity-50 rounded-xl shadow-2xl border border-amber-500/20">
-            <h2 className="text-3xl font-bold text-center text-amber-300 mb-6">{t('aiFaceReading')}</h2>
+            <h2 className="text-3xl font-bold text-center text-amber-300 mb-6">{t('aiGuidance')}</h2>
             <p className="text-center text-amber-100 mb-8">
-              {t('uploadFacePrompt')}
+              {t('guidancePrompt')}
             </p>
 
             <div className="grid md:grid-cols-2 gap-8 items-start">
-              <div className="flex flex-col items-center">
-                <label htmlFor="face-upload" className="w-full">
-                  <div className="w-full h-64 border-2 border-dashed border-amber-400 rounded-lg flex flex-col justify-center items-center cursor-pointer hover:bg-amber-900/20 transition-colors">
-                    {imagePreview ? (
-                      <img src={imagePreview} alt="Face preview" className="object-contain h-full w-full rounded-lg" />
-                    ) : (
-                      <>
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-amber-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                        </svg>
-                        <span className="text-amber-200">{t('uploadInstruction')}</span>
-                      </>
-                    )}
-                  </div>
-                </label>
-                <input id="face-upload" type="file" accept="image/*" capture="user" className="hidden" onChange={handleFileChange} />
-                {imageFile && (
-                  <Button onClick={handleGetReading} disabled={isLoading} className="mt-6">
-                      {isLoading ? t('analyzing') : t('getYourReading')}
-                  </Button>
-                )}
+              <div className="flex flex-col items-center w-full">
+                <textarea
+                  value={concern}
+                  onChange={(e) => setConcern(e.target.value)}
+                  placeholder={t('describeConcern')}
+                  className="w-full h-48 p-4 bg-gray-900 border border-amber-500/30 rounded-lg text-amber-50 focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none placeholder-gray-600 mb-4"
+                />
+                <Button onClick={handleGetGuidance} disabled={isLoading} className="w-full">
+                    {isLoading ? t('analyzing') : t('getGuidance')}
+                </Button>
               </div>
 
-              <div className="min-h-[16rem] bg-black bg-opacity-30 p-6 rounded-lg border border-amber-500/20">
+              <div className="min-h-[16rem] bg-black bg-opacity-30 p-6 rounded-lg border border-amber-500/20 w-full">
                 <h3 className="text-2xl font-semibold text-amber-300 mb-4">{t('yourReading')}</h3>
                 {isLoading && <Loader />}
                 {error && <p className="text-red-400">{error}</p>}
@@ -117,12 +91,12 @@ const FaceReading: React.FC = () => {
                                </div>
                             </>
                         ) : (
-                            <FullReport reading={reading} title={t('aiFaceReading')} />
+                            <FullReport reading={reading} title={t('aiGuidance')} />
                         )}
                    </div>
                 )}
                 {!isLoading && !reading && !error && (
-                  <p className="text-amber-200 opacity-60">{t('faceReadingPlaceholder')}</p>
+                  <p className="text-amber-200 opacity-60">{t('guidancePlaceholder')}</p>
                 )}
               </div>
             </div>
@@ -132,4 +106,4 @@ const FaceReading: React.FC = () => {
   );
 };
 
-export default FaceReading;
+export default Remedy;

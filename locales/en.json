@@ -100,5 +100,10 @@
   "create": "Create",
   "featureComingSoon": "{featureName} is coming soon.",
   "stayTuned": "Stay tuned for mystical insights!",
-  "goBackHome": "Go Back to Home"
+  "goBackHome": "Go Back to Home",
+  "aiGuidance": "AI Spiritual Guidance",
+  "guidancePrompt": "Share your worries or questions to receive personalized Vedic remedies and spiritual guidance.",
+  "describeConcern": "Describe your concern or question...",
+  "getGuidance": "Get Spiritual Guidance",
+  "guidancePlaceholder": "Your guidance will appear here."
 }
