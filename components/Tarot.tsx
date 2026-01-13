@@ -1,6 +1,6 @@
-import React, { useState, useCallback } from 'react';
+
+import React, { useState, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { MAJOR_ARCANA } from '../services/tarotData';
 import { getTarotReading } from '../services/geminiService';
 import Card from './shared/Card';
 import Loader from './shared/Loader';
@@ -10,8 +10,54 @@ import { usePayment } from '../context/PaymentContext';
 import TarotCard from './TarotCard';
 import FullReport from './FullReport';
 
+// --- DECK GENERATION LOGIC ---
+const SUITS = ['Wands', 'Cups', 'Swords', 'Pentacles'];
+const RANKS = ['Ace', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Page', 'Knight', 'Queen', 'King'];
+const MAJOR_NAMES = [
+  'The Fool', 'The Magician', 'The High Priestess', 'The Empress', 'The Emperor', 
+  'The Hierophant', 'The Lovers', 'The Chariot', 'Strength', 'The Hermit', 
+  'Wheel of Fortune', 'Justice', 'The Hanged Man', 'Death', 'Temperance', 
+  'The Devil', 'The Tower', 'The Star', 'The Moon', 'The Sun', 'Judgement', 'The World'
+];
+
+interface CardData {
+    number: string;
+    name: string;
+    type: 'Major' | 'Minor';
+    suit?: string;
+}
+
+const GENERATE_DECK = (): CardData[] => {
+    const deck: CardData[] = [];
+    
+    // Add Major Arcana
+    MAJOR_NAMES.forEach((name, i) => {
+        deck.push({ 
+            number: i.toString(), // Simplified numbering 
+            name, 
+            type: 'Major' 
+        });
+    });
+
+    // Add Minor Arcana
+    SUITS.forEach(suit => {
+        RANKS.forEach((rank, i) => {
+            deck.push({
+                number: `${rank} of ${suit}`,
+                name: `${rank} of ${suit}`,
+                type: 'Minor',
+                suit
+            });
+        });
+    });
+
+    return deck;
+};
+
+const FULL_DECK = GENERATE_DECK();
+
 const Tarot: React.FC = () => {
-  const [selectedCard, setSelectedCard] = useState<typeof MAJOR_ARCANA[0] | null>(null);
+  const [selectedCard, setSelectedCard] = useState<CardData | null>(null);
   const [reading, setReading] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
@@ -19,8 +65,13 @@ const Tarot: React.FC = () => {
   const { t } = useTranslation();
   const { openPayment } = usePayment();
 
-  const handleCardSelect = useCallback(async (card: typeof MAJOR_ARCANA[0]) => {
-    // Only allow selecting if not already paying/paid to avoid state jumps
+  // Shuffle deck for random "Feel" even if user picks specific grid slot
+  const shuffledDeck = useMemo(() => {
+      return [...FULL_DECK].sort(() => Math.random() - 0.5);
+  }, []);
+
+  const handleCardSelect = useCallback(async (card: CardData) => {
+    // Only allow selecting if not already paying/paid
     if (isPaid) return; 
     
     setSelectedCard(card);
@@ -72,24 +123,24 @@ const Tarot: React.FC = () => {
                 {t('tarotReading')}
             </h2>
             <p className="text-amber-100/80 font-lora italic text-lg max-w-2xl mx-auto">
-                {t('tarotPrompt')}
+                The deck contains 78 mysteries. Let your intuition guide your hand.
             </p>
         </div>
 
-        {/* Card Grid */}
-        <div className="relative z-10 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-11 gap-4 justify-items-center perspective-1000">
-          {MAJOR_ARCANA.map((card, idx) => (
+        {/* Card Grid - FULL 78 CARDS */}
+        <div className="relative z-10 grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 xl:grid-cols-13 gap-2 sm:gap-4 justify-items-center perspective-1000">
+          {shuffledDeck.map((card, idx) => (
             <TarotCard 
-               key={card.number}
+               key={`${card.name}-${idx}`}
                card={card}
                index={idx}
-               isSelected={selectedCard?.number === card.number}
+               isSelected={selectedCard?.name === card.name}
                onClick={() => handleCardSelect(card)}
             />
           ))}
         </div>
         
-        {/* Reading Modal / Overlay */}
+        {/* Reading Modal */}
         {(isLoading || selectedCard) && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in-up">
               <Card className="max-w-2xl w-full max-h-[90vh] overflow-y-auto border-amber-400/40 shadow-[0_0_50px_rgba(0,0,0,0.8)] bg-gray-900/90">
@@ -108,7 +159,7 @@ const Tarot: React.FC = () => {
                               <div className="w-48 sm:w-56 aspect-[2/3.4] mb-8 transform hover:scale-105 transition-transform duration-700 perspective-1000">
                                 <TarotCard 
                                     card={selectedCard} 
-                                    index={MAJOR_ARCANA.findIndex(c => c.number === selectedCard.number)} 
+                                    index={0} 
                                     isSelected={true} 
                                     onClick={() => {}} 
                                 />
@@ -132,7 +183,7 @@ const Tarot: React.FC = () => {
                                             <h3 className="text-3xl sm:text-4xl font-bold text-amber-300 mb-2 font-cinzel drop-shadow-lg">{selectedCard.name}</h3>
                                             <div className="text-amber-500 text-sm font-bold tracking-[0.3em] uppercase mb-6 flex items-center justify-center gap-4">
                                                 <span className="h-px w-8 bg-amber-500/50"></span>
-                                                Major Arcana • {selectedCard.number}
+                                                {selectedCard.type} Arcana
                                                 <span className="h-px w-8 bg-amber-500/50"></span>
                                             </div>
                                         </div>
@@ -153,7 +204,7 @@ const Tarot: React.FC = () => {
                                     <FullReport 
                                         reading={reading} 
                                         title={selectedCard.name}
-                                        subtitle={`Major Arcana • ${selectedCard.number}`}
+                                        subtitle={`${selectedCard.type} Arcana`}
                                     />
                                   )}
                               </div>

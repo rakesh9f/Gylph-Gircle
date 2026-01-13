@@ -11,6 +11,8 @@ import Remedy from './components/Remedy';
 import FaceReading from './components/FaceReading';
 import AdminLanding from './components/AdminLanding';
 import AdminConfig from './components/AdminConfig';
+import AdminDB from './components/AdminDB';
+import MasterLogin from './components/MasterLogin';
 import RevenueDashboard from './components/RevenueDashboard';
 import NumerologyAstrology from './components/NumerologyAstrology';
 import Tarot from './components/Tarot';
@@ -56,12 +58,15 @@ interface AdminRouteProps {
 }
 
 const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
+  // Check both normal user admin logic AND master session
   const { user } = useAuth();
-  // Simple check based on email for demo admin
-  const isAdmin = user?.email === 'rocky@glyph.co' || user?.email === 'minti@glyph.co';
+  const masterSession = localStorage.getItem('glyph_admin_session');
   
-  if (!isAdmin) {
-    return <Navigate to="/home" replace />;
+  const isMaster = !!masterSession;
+  const isNormalAdmin = user?.email === 'rocky@glyph.co' || user?.email === 'minti@glyph.co';
+  
+  if (!isMaster && !isNormalAdmin) {
+    return <Navigate to="/master-login" replace />;
   }
   return <>{children}</>;
 };
@@ -87,9 +92,8 @@ function App() {
   }
 
   // Show layout (header/footer) only when authenticated and not on auth pages
-  // Also hide layout on Dashboard for immersive view
-  const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
-  const isDashboard = location.pathname === '/admin/revenue';
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/master-login';
+  const isDashboard = location.pathname.startsWith('/admin');
   const showLayout = isAuthenticated && !isAuthPage && !isDashboard;
 
   return (
@@ -132,6 +136,7 @@ function App() {
                   path="/register" 
                   element={isAuthenticated ? <Navigate to="/home" replace /> : <Register />} 
                 />
+                <Route path="/master-login" element={<MasterLogin />} />
 
                 {/* Protected Routes */}
                 <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
@@ -146,22 +151,10 @@ function App() {
                 <Route path="/referrals" element={<ProtectedRoute><ReferralProgram /></ProtectedRoute>} />
                 <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
 
-                <Route 
-                  path="/admin/config" 
-                  element={
-                    <ProtectedRoute>
-                      <AdminRoute><AdminConfig /></AdminRoute>
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/admin/revenue" 
-                  element={
-                    <ProtectedRoute>
-                      <AdminRoute><RevenueDashboard /></AdminRoute>
-                    </ProtectedRoute>
-                  } 
-                />
+                {/* Admin Routes */}
+                <Route path="/admin/config" element={<AdminRoute><AdminConfig /></AdminRoute>} />
+                <Route path="/admin/revenue" element={<AdminRoute><RevenueDashboard /></AdminRoute>} />
+                <Route path="/admin/db/:table" element={<AdminRoute><AdminDB /></AdminRoute>} />
                 
                 {/* Root Redirect */}
                 <Route 
