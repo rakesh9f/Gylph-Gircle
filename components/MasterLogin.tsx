@@ -25,7 +25,7 @@ const MasterLogin: React.FC = () => {
         method = "LAYER 1 (DB Match)";
     }
 
-    // LAYER 2: DB Admin Email Check (Pass bypass if strictly needed, here we stick to verifying role)
+    // LAYER 2: DB Admin Email Check
     if (!success) {
         const adminUser = dbService.getAdminByEmail(email);
         if (adminUser && password === 'master123') { // Fallback pass check
@@ -51,7 +51,6 @@ const MasterLogin: React.FC = () => {
     }
   };
 
-  // LAYER 4: Nuclear Reset
   const handleNuclearReset = () => {
       if(confirm("💥 RESET DATABASE? This wipes all users except admins.")) {
           dbService.nuclearReset();
@@ -59,18 +58,9 @@ const MasterLogin: React.FC = () => {
       }
   };
 
-  // LAYER 5: Force Bypass
-  const handleForceLogin = () => {
-      if(confirm("⚡ FORCE LOGIN? Bypassing all checks.")) {
-          localStorage.setItem('glyph_admin_session', JSON.stringify({ user: 'force@admin.com', role: 'admin', method: 'LAYER 5 (Force)' }));
-          navigate('/admin/dashboard');
-      }
-  };
-
-  const checkDb = () => {
-      const users = dbService.getAllUsers();
-      addLog(`📊 DB Contains ${users.length} users:`);
-      users.forEach(u => addLog(` - ${u.email} [${u.role}] pass:${u.password}`));
+  const fillCreds = (user: string, pass: string) => {
+      setEmail(user);
+      setPassword(pass);
   };
 
   return (
@@ -79,20 +69,38 @@ const MasterLogin: React.FC = () => {
         <h1 className="text-2xl font-bold mb-4 text-center border-b border-green-900 pb-2">
            🛡️ FAILSAFE ADMIN ACCESS
         </h1>
+        
+        <div className="mb-4 bg-black/40 p-3 rounded border border-green-900/50 text-xs">
+            <p className="mb-2 font-bold text-green-400">AVAILABLE ACCOUNTS:</p>
+            <div className="grid grid-cols-2 gap-2">
+                <button 
+                    onClick={() => fillCreds('master@gylphcircle.com', 'master123')}
+                    className="text-left hover:bg-green-900/20 p-1 rounded"
+                >
+                    1. master@gylphcircle.com
+                    <br/><span className="opacity-50">Pass: master123</span>
+                </button>
+                <button 
+                    onClick={() => fillCreds('admin@gylphcircle.com', 'admin123')}
+                    className="text-left hover:bg-green-900/20 p-1 rounded"
+                >
+                    2. admin@gylphcircle.com
+                    <br/><span className="opacity-50">Pass: admin123</span>
+                </button>
+            </div>
+        </div>
 
         {/* DEBUG CONTROLS */}
         <div className="grid grid-cols-2 gap-2 mb-6">
             <button onClick={handleNuclearReset} className="bg-red-900 text-white p-2 text-xs font-bold hover:bg-red-700">
                 💥 NUCLEAR DB RESET
             </button>
-            <button onClick={checkDb} className="bg-blue-900 text-white p-2 text-xs font-bold hover:bg-blue-700">
+            <button onClick={() => {
+                const users = dbService.getAllUsers();
+                addLog(`📊 DB Contains ${users.length} users:`);
+                users.forEach(u => addLog(` - ${u.email} [${u.role}]`));
+            }} className="bg-blue-900 text-white p-2 text-xs font-bold hover:bg-blue-700">
                 🔍 CHECK DB USERS
-            </button>
-            <button onClick={() => { setEmail('master@gylphcircle.com'); setPassword('master123'); }} className="bg-yellow-900 text-white p-2 text-xs font-bold hover:bg-yellow-700">
-                🔑 FILL CREDS
-            </button>
-            <button onClick={handleForceLogin} className="bg-purple-900 text-white p-2 text-xs font-bold hover:bg-purple-700 animate-pulse">
-                ⚡ FORCE ADMIN LOGIN
             </button>
         </div>
 
@@ -101,17 +109,17 @@ const MasterLogin: React.FC = () => {
                 className="w-full bg-black border border-green-800 p-3 text-white focus:border-green-400 outline-none"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                placeholder="master@gylphcircle.com"
+                placeholder="Enter Admin Email"
             />
             <input 
                 type="password"
                 className="w-full bg-black border border-green-800 p-3 text-white focus:border-green-400 outline-none"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                placeholder="master123"
+                placeholder="Enter Password"
             />
-            <button className="w-full bg-green-700 hover:bg-green-600 text-black font-bold py-3">
-                AUTHENTICATE (LAYER 1-3)
+            <button className="w-full bg-green-700 hover:bg-green-600 text-black font-bold py-3 uppercase tracking-widest shadow-[0_0_15px_rgba(34,197,94,0.4)]">
+                Authenticate
             </button>
         </form>
 

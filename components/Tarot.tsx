@@ -158,7 +158,7 @@ const Tarot: React.FC = () => {
 
                       <div className="flex flex-col items-center">
                           {selectedCard && (
-                              <div className="w-48 sm:w-56 aspect-[2/3] mb-8 transform hover:scale-105 transition-transform duration-700">
+                              <div className="w-56 sm:w-72 aspect-[2/3] mb-8 transform hover:scale-105 transition-transform duration-700">
                                 <TarotCard 
                                     card={selectedCard} 
                                     index={0} 

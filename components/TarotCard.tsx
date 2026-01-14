@@ -101,7 +101,7 @@ const TarotCard: React.FC<TarotCardProps> = ({ card, isSelected, onClick, index 
         aspect-[2/3] 
         perspective-1000 z-10 
         transition-all duration-500 ease-out
-        ${isSelected ? 'scale-110 z-40' : 'hover:-translate-y-4 hover:z-30 hover:scale-105'}
+        ${isSelected ? 'scale-100 z-40' : 'hover:-translate-y-4 hover:z-30 hover:scale-105'}
       `}
       dir={isRTL ? 'rtl' : 'ltr'}
     >
@@ -151,47 +151,47 @@ const TarotCard: React.FC<TarotCardProps> = ({ card, isSelected, onClick, index 
         <div 
           className={`
             absolute inset-0 w-full h-full rounded-xl overflow-hidden rotate-y-180 backface-hidden
-            flex flex-col items-center justify-between p-1.5
+            flex flex-col items-center justify-between p-3
             border-2 ${theme.border}
             ${theme.bgGradient}
             ${theme.glow}
           `}
         >
           {/* Header: Number */}
-          <div className={`w-full flex justify-between px-1.5 pt-1 font-cinzel text-[10px] font-bold ${theme.accent} opacity-80`}>
+          <div className={`w-full flex justify-between px-1.5 pt-1 font-cinzel text-[10px] sm:text-xs font-bold ${theme.accent} opacity-80`}>
               <span>{card.number.split(' ')[0]}</span>
               {card.type === 'Major' && <span>M</span>}
           </div>
 
-          {/* CRYSTAL BALL ANIMATION */}
+          {/* CRYSTAL BALL ANIMATION - SCALED TO CARD WIDTH */}
           <div className="relative flex-grow flex items-center justify-center w-full">
-             <div className="relative w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center">
+             <div className="relative w-[75%] aspect-square flex items-center justify-center">
                  {/* Orb Glow */}
-                 <div className={`absolute inset-0 rounded-full ${theme.orb} blur-md animate-pulse`}></div>
+                 <div className={`absolute inset-0 rounded-full ${theme.orb} blur-xl animate-pulse`}></div>
                  
                  {/* The Crystal Ball Itself */}
                  <div className="relative w-full h-full rounded-full bg-gradient-to-br from-white/10 to-transparent border border-white/20 shadow-inner flex items-center justify-center overflow-hidden backdrop-blur-sm">
                      {/* Mist */}
                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-50"></div>
                      
-                     {/* Icon */}
-                     <span className="relative z-10 text-3xl sm:text-4xl filter drop-shadow-lg transform transition-transform duration-700">
+                     {/* Icon - Responsive Text Size */}
+                     <span className="relative z-10 text-[3rem] sm:text-[4rem] md:text-[5rem] filter drop-shadow-lg transform transition-transform duration-700 leading-none">
                         {theme.icon}
                      </span>
                      
                      {/* Reflection */}
-                     <div className="absolute top-2 left-3 w-4 h-2 bg-white/30 rounded-full blur-[1px] rotate-[-45deg]"></div>
+                     <div className="absolute top-[15%] left-[20%] w-[20%] h-[10%] bg-white/30 rounded-full blur-[2px] rotate-[-45deg]"></div>
                  </div>
              </div>
           </div>
 
           {/* Footer: Name */}
-          <div className="w-full text-center pb-2">
+          <div className="w-full text-center pb-1">
               <div className={`
-                w-full py-1 
+                w-full py-1.5 
                 bg-black/30 backdrop-blur-md rounded border-t ${theme.border}
-                text-amber-50 font-cinzel font-bold text-[9px] sm:text-[10px] tracking-wide
-                truncate px-1
+                text-amber-50 font-cinzel font-bold text-[10px] sm:text-xs tracking-wide
+                truncate px-2
               `}>
                 {translatedName}
               </div>

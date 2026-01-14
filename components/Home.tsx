@@ -1,15 +1,21 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { SERVICE_OPTIONS, BACKGROUND_IMAGES } from '../constants';
 import { useDb } from '../hooks/useDb';
+import { useAuth } from '../context/AuthContext';
 import Card from './shared/Card';
 import { useTranslation } from '../hooks/useTranslation';
 
 const Home: React.FC = () => {
   const [bgIndex, setBgIndex] = useState(0);
   const { db } = useDb();
+  const { user } = useAuth();
   const featuredContent = db.featured_content.find(c => c.status === 'active');
   const { t } = useTranslation();
+
+  const ADMIN_EMAILS = ['master@gylphcircle.com', 'admin@gylphcircle.com'];
+  const isAdmin = user && ADMIN_EMAILS.includes(user.email);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -127,6 +133,39 @@ const Home: React.FC = () => {
               </Card>
             </Link>
           ))}
+
+          {/* ADMIN CONFIGURATION CARD (Visible only to Admins) */}
+          {isAdmin && (
+             <Link 
+                to="/admin/config" 
+                className="group relative transform transition-all duration-500 hover:-translate-y-2 hover:z-10"
+                style={{ animation: `fadeInUp 0.8s ease-out forwards 1s`, opacity: 0 }}
+             >
+              <div className="absolute -inset-0.5 bg-gradient-to-br from-green-600/20 to-blue-600/20 rounded-2xl blur opacity-0 group-hover:opacity-100 transition duration-700"></div>
+              <Card className="h-full bg-gradient-to-b from-gray-900/90 to-blue-950/80 backdrop-blur-md border border-green-500/40 group-hover:border-green-400 group-hover:bg-black/80 transition-all duration-500 relative overflow-hidden">
+                <div className="flex flex-col items-center p-8 h-full text-center relative z-10">
+                  <div className="absolute top-4 right-4 text-green-500/30 group-hover:text-green-400/80">⚙️</div>
+                  <div className="mb-8 p-5 rounded-full bg-black/40 border border-green-500/30 text-green-400 group-hover:text-white group-hover:bg-green-700 transition-all duration-500 shadow-[0_0_15px_rgba(34,197,94,0.3)]">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-2xl font-cinzel font-bold mb-4 text-green-100 group-hover:text-green-300 tracking-wide">Configuration</h3>
+                  <div className="w-16 h-px bg-green-500/30 mb-6 group-hover:w-32 group-hover:bg-gradient-to-r group-hover:from-transparent group-hover:via-green-400 group-hover:to-transparent transition-all duration-700"></div>
+                  <p className="text-green-200/60 font-lora text-sm leading-7 mb-8 group-hover:text-green-100/90">
+                    Manage database tables, toggle features, and configure app settings.
+                  </p>
+                  <div className="mt-auto opacity-0 group-hover:opacity-100 transition-all duration-500 transform translate-y-4 group-hover:translate-y-0">
+                      <span className="text-green-400 text-xs font-bold uppercase tracking-[0.2em] flex items-center gap-2 group-hover:gap-3 transition-all">
+                          Manage <span className="text-lg leading-none">›</span>
+                      </span>
+                  </div>
+                </div>
+              </Card>
+             </Link>
+          )}
+
         </div>
       </div>
     </div>
