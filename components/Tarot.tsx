@@ -59,13 +59,22 @@ const Tarot: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
   const [isPaid, setIsPaid] = useState<boolean>(false);
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const { openPayment } = usePayment();
 
   // Shuffle deck on mount
   const shuffledDeck = useMemo(() => {
       return [...FULL_DECK].sort(() => Math.random() - 0.5);
   }, []);
+
+  const getLanguageName = (code: string) => {
+      const map: Record<string, string> = {
+          en: 'English', hi: 'Hindi', ta: 'Tamil', te: 'Telugu',
+          bn: 'Bengali', mr: 'Marathi', es: 'Spanish', fr: 'French',
+          ar: 'Arabic', pt: 'Portuguese'
+      };
+      return map[code] || 'English';
+  };
 
   const handleCardSelect = useCallback(async (card: CardData) => {
     if (isPaid) return; 
@@ -77,7 +86,7 @@ const Tarot: React.FC = () => {
     setIsPaid(false);
 
     try {
-      const result = await getTarotReading(card.name);
+      const result = await getTarotReading(card.name, getLanguageName(language));
       setReading(result);
     } catch (err: any) {
       console.error(err);
@@ -86,7 +95,7 @@ const Tarot: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [isPaid]);
+  }, [isPaid, language]);
   
   const handleReadMore = () => {
     openPayment(() => {
@@ -192,7 +201,7 @@ const Tarot: React.FC = () => {
                                         
                                         <div className="relative text-amber-100 leading-relaxed font-lora text-lg italic bg-black/40 p-6 rounded-lg border border-amber-500/20 shadow-inner">
                                             <span className="absolute top-2 left-2 text-4xl text-amber-500/20 font-serif">“</span>
-                                            {reading}
+                                            {reading.replace(/#/g, '').replace(/\*\*/g, '')}
                                             <span className="absolute bottom-[-10px] right-4 text-4xl text-amber-500/20 font-serif">”</span>
                                         </div>
                                         

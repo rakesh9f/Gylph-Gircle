@@ -52,7 +52,7 @@ const MOCK_DATABASE: MockDatabase = {
   image_assets: [
     { id: 'bg_home_1', path: '/img/bg1.jpg', caption: 'Ancient cosmic map', status: 'active' },
     { id: 'chart_kundali_default', path: 'https://images.unsplash.com/photo-1532012197267-da84d127e765?q=80&w=1000&auto=format&fit=crop', caption: 'North Indian Kundali Chart', status: 'active' },
-    { id: 'chart_numerology_default', path: 'https://images.unsplash.com/photo-1635016560942-039c3e98cc35?q=80&w=1000&auto=format&fit=crop', caption: 'Numerology Grid', status: 'active' },
+    { id: 'chart_numerology_default', path: 'https://images.unsplash.com/photo-1507842217121-9d597543eb56?q=80&w=1000&auto=format&fit=crop', caption: 'Numerology Geometry', status: 'active' },
   ],
   feedback: [
     { id: 1, user_id: 4, rating: 5, comment: 'Very insightful reading!', created_at: '2023-10-27T12:00:00Z', status: 'active' },

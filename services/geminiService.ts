@@ -26,30 +26,16 @@ const fileToBase64 = (file: File): Promise<string> => {
   });
 };
 
-// Helper to get language context safely without React hooks
-const getLanguageContext = () => {
-    const langCode = localStorage.getItem('glyph_language') || 'en';
-    const langMap: Record<string, string> = {
-        en: 'English',
-        hi: 'Hindi',
-        ta: 'Tamil',
-        te: 'Telugu',
-        bn: 'Bengali',
-        mr: 'Marathi',
-        es: 'Spanish',
-        fr: 'French',
-        ar: 'Arabic',
-        pt: 'Portuguese'
-    };
-    return langMap[langCode] || 'English';
-};
-
-export const getPalmReading = async (imageFile: File): Promise<string> => {
+export const getPalmReading = async (imageFile: File, language: string = 'English'): Promise<string> => {
   const ai = getAi();
   const base64Data = await fileToBase64(imageFile);
-  const lang = getLanguageContext();
   
-  const prompt = `You are an expert Vedic palm reader. Analyze this image of a palm. Provide a short, insightful 2-3 line reading focusing on heart, head, and life lines. IMPORTANT: Provide the response in ${lang} language.`;
+  const prompt = `You are an expert Vedic palm reader. Analyze this image of a palm. Provide a short, insightful 2-3 line reading focusing on heart, head, and life lines. 
+  
+  CRITICAL RULES:
+  1. Output STRICTLY in ${language} language.
+  2. Do NOT use markdown headers (like # or ##).
+  3. Use **Bold** for key terms only.`;
 
   try {
     const response = await ai.models.generateContent({
@@ -67,12 +53,16 @@ export const getPalmReading = async (imageFile: File): Promise<string> => {
   }
 };
 
-export const getFaceReading = async (imageFile: File): Promise<string> => {
+export const getFaceReading = async (imageFile: File, language: string = 'English'): Promise<string> => {
     const ai = getAi();
     const base64Data = await fileToBase64(imageFile);
-    const lang = getLanguageContext();
 
-    const prompt = `You are an expert physiognomist. Analyze this face image. Provide a short 2-3 line personality insight based on features. IMPORTANT: Provide the response in ${lang} language.`;
+    const prompt = `You are an expert physiognomist. Analyze this face image. Provide a short 2-3 line personality insight based on features.
+    
+    CRITICAL RULES:
+    1. Output STRICTLY in ${language} language.
+    2. Do NOT use markdown headers (like # or ##).
+    3. Use **Bold** for key terms only.`;
 
     try {
         const response = await ai.models.generateContent({
@@ -96,11 +86,12 @@ interface AstroNumeroDetails {
     dob: string;
     pob: string;
     tob: string;
+    language?: string;
 }
 
 export const getAstroNumeroReading = async (details: AstroNumeroDetails): Promise<{ reading: string; chartData?: any }> => {
     const ai = getAi();
-    const lang = getLanguageContext();
+    const lang = details.language || 'English';
     
     // Schema definition for structured output
     const schema = {
@@ -108,7 +99,7 @@ export const getAstroNumeroReading = async (details: AstroNumeroDetails): Promis
         properties: {
             reading: {
                 type: Type.STRING,
-                description: "A comprehensive and detailed mystical reading. It should be at least 150-200 words long, covering personality, career, relationships, and health."
+                description: "A comprehensive, structured reading formatted in clean text with bold highlights."
             },
             // For Astrology: Return planetary positions for 12 houses
             houses: {
@@ -137,15 +128,22 @@ export const getAstroNumeroReading = async (details: AstroNumeroDetails): Promis
     const prompt = `You are a Grand Master in ${context}. 
     User Details: Name: ${details.name}, DOB: ${details.dob}, Place: ${details.pob}, Time: ${details.tob}. 
     
-    Generate a HIGHLY DETAILED and INSIGHTFUL reading. 
-    1. Core Essence & Personality.
-    2. Key Strengths & Weaknesses.
-    3. Predictions for the coming year.
-    4. Spiritual Advice.
+    Generate a HIGHLY DETAILED and INSIGHTFUL reading.
     
-    The reading should be deep, mystical, and comforting. Do not be brief.
-    ${details.mode === 'astrology' ? 'Also calculate/estimate the North Indian chart planetary positions (Sun, Moon, Mars, Mercury, Jupiter, Venus, Saturn, Rahu, Ketu) in the 12 houses based on the date and time provided.' : ''}
-    IMPORTANT: Provide the reading text in ${lang} language.`;
+    CRITICAL RULES:
+    1. Output STRICTLY in ${lang} language.
+    2. Do NOT use markdown headers (like #, ##, ###).
+    3. Use **Bold** for Section Titles and key terms.
+    4. Format with clear paragraph breaks.
+    
+    Structure the reading into these sections (Titles in Bold):
+    1. Core Essence & Personality
+    2. Key Strengths
+    3. Challenges
+    4. Predictions for the coming year
+    5. Spiritual Advice
+    
+    ${details.mode === 'astrology' ? 'Also calculate/estimate the North Indian chart planetary positions (Sun, Moon, Mars, Mercury, Jupiter, Venus, Saturn, Rahu, Ketu) in the 12 houses based on the date and time provided.' : ''}`;
 
     try {
         const response = await ai.models.generateContent({
@@ -168,10 +166,14 @@ export const getAstroNumeroReading = async (details: AstroNumeroDetails): Promis
     }
 };
 
-export const getTarotReading = async (cardName: string): Promise<string> => {
+export const getTarotReading = async (cardName: string, language: string = 'English'): Promise<string> => {
     const ai = getAi();
-    const lang = getLanguageContext();
-    const prompt = `You are a mystical tarot reader. Provide a detailed interpretation for the "${cardName}" card. Cover its general meaning, love, career, and advice. IMPORTANT: Provide the response in ${lang} language.`;
+    const prompt = `You are a mystical tarot reader. Provide a detailed interpretation for the "${cardName}" card. Cover its general meaning, love, career, and advice. 
+    
+    CRITICAL RULES:
+    1. Output STRICTLY in ${language} language.
+    2. Do NOT use markdown headers (like #).
+    3. Use **Bold** for titles.`;
 
     try {
         const response = await ai.models.generateContent({
@@ -184,10 +186,14 @@ export const getTarotReading = async (cardName: string): Promise<string> => {
     }
 };
 
-export const getRemedy = async (concern: string): Promise<string> => {
+export const getRemedy = async (concern: string, language: string = 'English'): Promise<string> => {
     const ai = getAi();
-    const lang = getLanguageContext();
-    const prompt = `You are a wise spiritual guide. The user has this concern: "${concern}". Provide a detailed and comforting Vedic remedy, mantra, and practical guidance. IMPORTANT: Provide the response in ${lang} language.`;
+    const prompt = `You are a wise spiritual guide. The user has this concern: "${concern}". Provide a detailed and comforting Vedic remedy, mantra, and practical guidance.
+    
+    CRITICAL RULES:
+    1. Output STRICTLY in ${language} language.
+    2. Do NOT use markdown headers (like #).
+    3. Use **Bold** for titles.`;
 
     try {
         const response = await ai.models.generateContent({

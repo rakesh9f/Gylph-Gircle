@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { getRemedy } from '../services/geminiService';
@@ -13,8 +14,17 @@ const Remedy: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
   const [isPaid, setIsPaid] = useState<boolean>(false);
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const { openPayment } = usePayment();
+
+  const getLanguageName = (code: string) => {
+      const map: Record<string, string> = {
+          en: 'English', hi: 'Hindi', ta: 'Tamil', te: 'Telugu',
+          bn: 'Bengali', mr: 'Marathi', es: 'Spanish', fr: 'French',
+          ar: 'Arabic', pt: 'Portuguese'
+      };
+      return map[code] || 'English';
+  };
 
   const handleGetGuidance = useCallback(async () => {
     if (!concern.trim()) {
@@ -28,14 +38,14 @@ const Remedy: React.FC = () => {
     setIsPaid(false);
 
     try {
-      const result = await getRemedy(concern);
+      const result = await getRemedy(concern, getLanguageName(language));
       setReading(result);
     } catch (err: any) {
       setError(`Failed to get guidance: ${err.message}. Please try again.`);
     } finally {
       setIsLoading(false);
     }
-  }, [concern]);
+  }, [concern, language]);
 
   const handleReadMore = () => {
     openPayment(() => {
@@ -81,7 +91,7 @@ const Remedy: React.FC = () => {
                             <>
                                 <div className="relative text-amber-100 leading-relaxed font-lora text-lg italic bg-black/40 p-6 rounded-lg border border-amber-500/20 shadow-inner">
                                     <span className="absolute top-2 left-2 text-4xl text-amber-500/20 font-serif">“</span>
-                                    {reading}
+                                    {reading.replace(/#/g, '').replace(/\*\*/g, '')}
                                     <span className="absolute bottom-[-10px] right-4 text-4xl text-amber-500/20 font-serif">”</span>
                                 </div>
                                 <div className="pt-4 border-t border-amber-500/20">

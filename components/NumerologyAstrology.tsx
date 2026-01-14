@@ -27,7 +27,7 @@ const NumerologyAstrology: React.FC<NumerologyAstrologyProps> = ({ mode }) => {
   const [error, setError] = useState<string>('');
   const [isPaid, setIsPaid] = useState<boolean>(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const { openPayment } = usePayment();
   const { db } = useDb();
 
@@ -50,6 +50,16 @@ const NumerologyAstrology: React.FC<NumerologyAstrologyProps> = ({ mode }) => {
     return '';
   }
 
+  // Helper mapping for language codes to full names for prompt
+  const getLanguageName = (code: string) => {
+      const map: Record<string, string> = {
+          en: 'English', hi: 'Hindi', ta: 'Tamil', te: 'Telugu',
+          bn: 'Bengali', mr: 'Marathi', es: 'Spanish', fr: 'French',
+          ar: 'Arabic', pt: 'Portuguese'
+      };
+      return map[code] || 'English';
+  };
+
   const handleGetReading = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     const validationError = validateForm();
@@ -65,7 +75,11 @@ const NumerologyAstrology: React.FC<NumerologyAstrologyProps> = ({ mode }) => {
     setIsPaid(false);
 
     try {
-      const result = await getAstroNumeroReading({ mode, ...formData });
+      const result = await getAstroNumeroReading({ 
+          mode, 
+          ...formData, 
+          language: getLanguageName(language) 
+      });
       setReading(result.reading);
       setChartData(result.chartData);
     } catch (err: any) {
@@ -73,7 +87,7 @@ const NumerologyAstrology: React.FC<NumerologyAstrologyProps> = ({ mode }) => {
     } finally {
       setIsLoading(false);
     }
-  }, [formData, mode]);
+  }, [formData, mode, language]);
   
   const handleReadMore = () => {
     openPayment(() => {
@@ -198,9 +212,6 @@ const NumerologyAstrology: React.FC<NumerologyAstrologyProps> = ({ mode }) => {
       ctx.textAlign = 'center';
 
       zones.forEach(z => {
-          // Draw House Number (Small)
-          // ctx.fillText(z.label, z.x, z.y - 10); 
-          
           // Draw Planets
           if (houses && houses[z.label]) {
               const planets = houses[z.label];
@@ -239,7 +250,7 @@ const NumerologyAstrology: React.FC<NumerologyAstrologyProps> = ({ mode }) => {
                 <input type="text" name="name" id="name" value={formData.name} onChange={handleInputChange} className="w-full p-3 bg-gray-900 border border-amber-500/30 rounded-lg text-amber-50 focus:ring-1 focus:ring-amber-500" placeholder="e.g. John Doe" />
               </div>
               <div className={mode === 'numerology' ? "md:col-span-2" : ""}>
-                <label htmlFor="dob" className="block text-amber-200 mb-2 font-bold">{t('dob')}</label>
+                <label htmlFor="dob" className="block text-amber-200 mb-2 font-bold">Date of Birth</label>
                 <input type="date" name="dob" id="dob" value={formData.dob} onChange={handleInputChange} className="w-full p-3 bg-gray-900 border border-amber-500/30 rounded-lg text-amber-50 focus:ring-1 focus:ring-amber-500" />
                 <span className="text-xs text-amber-200/50 mt-1 block pl-1">Format: DD/MM/YYYY (Use calendar icon to select)</span>
               </div>
@@ -288,7 +299,8 @@ const NumerologyAstrology: React.FC<NumerologyAstrologyProps> = ({ mode }) => {
                                   <div className="space-y-4 text-amber-100">
                                       {/* Truncate reading for preview */}
                                       <div className="whitespace-pre-wrap italic font-lora border-l-2 border-amber-500/30 pl-4">
-                                          {reading.split(' ').slice(0, 30).join(' ')}...
+                                          {/* Simple cleanup for preview */}
+                                          {reading.replace(/#/g, '').replace(/\*\*/g, '').split(' ').slice(0, 30).join(' ')}...
                                       </div>
                                       <div className="pt-4 border-t border-amber-500/20">
                                           <Button onClick={handleReadMore} className="w-full bg-gradient-to-r from-amber-600 to-maroon-700 border-amber-400 shadow-[0_0_20px_rgba(251,191,36,0.4)]">
