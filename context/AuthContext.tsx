@@ -1,6 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { dbService, User, Reading } from '../services/db';
+import { ACTION_POINTS, SIGILS, GameStats } from '../services/gamificationConfig';
 
 interface PendingReading {
   type: Reading['type'];
@@ -10,8 +11,19 @@ interface PendingReading {
   image_url?: string;
 }
 
+// Extend User for Gamification
+interface GamifiedUser extends User {
+  gamification?: {
+    karma: number;
+    streak: number;
+    lastVisit: string;
+    readingsCount: number;
+    unlockedSigils: string[];
+  };
+}
+
 interface AuthContextType {
-  user: User | null;
+  user: GamifiedUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
@@ -28,6 +40,10 @@ interface AuthContextType {
   pendingReading: PendingReading | null;
   setPendingReading: (reading: PendingReading | null) => void;
   commitPendingReading: () => void;
+  // Gamification Actions
+  awardKarma: (amount: number, actionName?: string) => void;
+  newSigilUnlocked: string | null; // For UI notification
+  clearSigilNotification: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -40,23 +56,105 @@ export const useAuth = () => {
   return context;
 };
 
-// Compatibility hook for existing code using useUser
 export const useUser = useAuth;
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<GamifiedUser | null>(null);
   const [history, setHistory] = useState<Reading[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pendingReading, setPendingReading] = useState<PendingReading | null>(null);
+  const [newSigilUnlocked, setNewSigilUnlocked] = useState<string | null>(null);
+
+  // --- GAMIFICATION LOGIC ---
+  const checkDailyStreak = (currentUser: GamifiedUser) => {
+      const today = new Date().toDateString();
+      const lastVisit = currentUser.gamification?.lastVisit ? new Date(currentUser.gamification.lastVisit).toDateString() : null;
+      
+      let newStreak = currentUser.gamification?.streak || 0;
+      let karmaAwarded = 0;
+
+      // Initialize if missing
+      if (!currentUser.gamification) {
+          currentUser.gamification = { karma: 0, streak: 1, lastVisit: new Date().toISOString(), readingsCount: 0, unlockedSigils: [] };
+          return currentUser;
+      }
+
+      if (lastVisit !== today) {
+          const yesterday = new Date();
+          yesterday.setDate(yesterday.getDate() - 1);
+          
+          if (lastVisit === yesterday.toDateString()) {
+              newStreak += 1;
+          } else {
+              newStreak = 1; // Reset if broken
+          }
+          
+          currentUser.gamification.streak = newStreak;
+          currentUser.gamification.lastVisit = new Date().toISOString();
+          currentUser.gamification.karma += ACTION_POINTS.DAILY_LOGIN;
+          karmaAwarded = ACTION_POINTS.DAILY_LOGIN;
+          
+          // Determine logic to persist this update immediately would go here
+          // For now, we rely on the state update loop or dbService update
+      }
+      return currentUser;
+  };
+
+  const checkSigils = (u: GamifiedUser) => {
+      if (!u.gamification) return;
+      const stats: GameStats = u.gamification;
+      
+      SIGILS.forEach(sigil => {
+          if (!stats.unlockedSigils.includes(sigil.id) && sigil.condition(stats)) {
+              stats.unlockedSigils.push(sigil.id);
+              setNewSigilUnlocked(sigil.name);
+              // Audio Cue
+              if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+          }
+      });
+  };
+
+  const awardKarma = useCallback((amount: number) => {
+      if (!user) return;
+      
+      setUser(prev => {
+          if (!prev) return null;
+          const updated = { ...prev };
+          if (!updated.gamification) updated.gamification = { karma: 0, streak: 1, lastVisit: new Date().toISOString(), readingsCount: 0, unlockedSigils: [] };
+          
+          updated.gamification.karma += amount;
+          checkSigils(updated);
+          
+          // Persist to local storage mock (In a real app, API call)
+          localStorage.setItem(`glyph_gamify_${updated.id}`, JSON.stringify(updated.gamification));
+          
+          return updated;
+      });
+  }, [user]);
+
+  // --- END GAMIFICATION LOGIC ---
 
   const refreshUser = useCallback(() => {
     const userId = localStorage.getItem('gylph_user_id');
     if (userId) {
-      const currentUser = dbService.getUser(userId);
-      if (currentUser) {
-        setUser(currentUser);
-        setHistory(dbService.getReadings(currentUser.id));
+      const dbUser = dbService.getUser(userId);
+      if (dbUser) {
+        // Merge Gamification Data from LocalStorage (Simulated separate DB table)
+        const gamifyData = localStorage.getItem(`glyph_gamify_${userId}`);
+        let fullUser: GamifiedUser = { ...dbUser };
+        
+        if (gamifyData) {
+            fullUser.gamification = JSON.parse(gamifyData);
+        } else {
+            fullUser.gamification = { karma: 0, streak: 1, lastVisit: new Date().toISOString(), readingsCount: 0, unlockedSigils: [] };
+        }
+
+        fullUser = checkDailyStreak(fullUser);
+        localStorage.setItem(`glyph_gamify_${userId}`, JSON.stringify(fullUser.gamification));
+
+        setUser(fullUser);
+        setHistory(dbService.getReadings(dbUser.id));
       } else {
         localStorage.removeItem('gylph_user_id');
         setUser(null);
@@ -73,15 +171,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setIsLoading(true);
     setError(null);
     try {
-        await new Promise(r => setTimeout(r, 500)); // Simulate net delay
+        await new Promise(r => setTimeout(r, 500)); 
         const validUser = await dbService.validateUser(email, password);
 
         if (validUser) {
             localStorage.setItem('gylph_user_id', validUser.id);
-            setUser(validUser);
-            setHistory(dbService.getReadings(validUser.id));
+            // Trigger refresh to load gamification data
+            setTimeout(refreshUser, 50); 
             
-            // Auto-set Admin Session if role matches (Fixes Redirect Loop)
             if (validUser.role === 'admin') {
                 localStorage.setItem('glyph_admin_session', JSON.stringify({ 
                     user: validUser.email, 
@@ -105,12 +202,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setError(null);
     try {
         await new Promise(r => setTimeout(r, 500));
-        
         try {
-            const newUser = await dbService.createUser(email, name, password); // Service handles hashing
+            const newUser = await dbService.createUser(email, name, password);
             localStorage.setItem('gylph_user_id', newUser.id);
-            setUser(newUser);
-            setHistory([]);
+            // Init Gamification
+            const gamifyInit = { karma: 100, streak: 1, lastVisit: new Date().toISOString(), readingsCount: 0, unlockedSigils: [] };
+            localStorage.setItem(`glyph_gamify_${newUser.id}`, JSON.stringify(gamifyInit));
+            
+            setTimeout(refreshUser, 50);
         } catch (e: any) {
             throw new Error("User already exists with this email");
         }
@@ -127,10 +226,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       try {
           const user = await dbService.createGoogleUser(email, name, googleId);
           localStorage.setItem('gylph_user_id', user.id);
-          setUser(user);
-          setHistory(dbService.getReadings(user.id));
+          setTimeout(refreshUser, 50);
           
-          // Check for Admin Privilege via email
           if(user.role === 'admin') {
               localStorage.setItem('glyph_admin_session', JSON.stringify({ 
                   user: user.email, 
@@ -155,7 +252,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const addCredits = useCallback((amount: number) => {
     if (user) {
       const updatedUser = dbService.addCredits(user.id, amount);
-      setUser(updatedUser);
+      setUser(prev => prev ? { ...prev, credits: updatedUser.credits } : null);
     }
   }, [user]);
 
@@ -167,6 +264,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         paid: true,
       });
       setHistory(prev => [saved, ...prev]);
+      
+      // Update Gamification
+      setUser(prev => {
+          if (!prev || !prev.gamification) return prev;
+          const updated = { ...prev };
+          updated.gamification!.readingsCount += 1;
+          updated.gamification!.karma += ACTION_POINTS.READING_COMPLETE;
+          
+          checkSigils(updated);
+          localStorage.setItem(`glyph_gamify_${updated.id}`, JSON.stringify(updated.gamification));
+          return updated;
+      });
     }
   }, [user]);
 
@@ -183,6 +292,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setHistory(prev => prev.map(r => r.id === readingId ? updated : r));
     }
   }, []);
+
+  const clearSigilNotification = () => setNewSigilUnlocked(null);
 
   return (
     <AuthContext.Provider value={{
@@ -202,7 +313,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       toggleFavorite,
       pendingReading,
       setPendingReading,
-      commitPendingReading
+      commitPendingReading,
+      awardKarma,
+      newSigilUnlocked,
+      clearSigilNotification
     }}>
       {children}
     </AuthContext.Provider>

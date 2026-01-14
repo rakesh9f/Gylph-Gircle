@@ -6,7 +6,7 @@ import { useTranslation } from '../hooks/useTranslation';
 interface TarotCardProps {
   card: { name: string; number: string; type?: string; suit?: string };
   isSelected: boolean;
-  onClick: () => void;
+  onClick: (e: React.MouseEvent<HTMLDivElement>) => void;
   index: number;
 }
 
@@ -88,9 +88,9 @@ const TarotCard: React.FC<TarotCardProps> = ({ card, isSelected, onClick, index 
   const theme = useMemo(() => getCardTheme(card, index), [card, index]);
   const translatedName = t(card.name);
 
-  const handleClick = () => {
+  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (navigator.vibrate) navigator.vibrate(20);
-    onClick();
+    onClick(e);
   };
 
   return (

@@ -27,7 +27,7 @@ const fileToBase64 = (file: File): Promise<string> => {
 };
 
 export interface PalmMetricResponse {
-    rawMetrics: any; // The PalmInput structure
+    rawMetrics: any;
     textReading: string;
 }
 
@@ -35,7 +35,6 @@ export const getPalmReading = async (imageFile: File, language: string = 'Englis
   const ai = getAi();
   const base64Data = await fileToBase64(imageFile);
   
-  // Define Schema for Structured Extraction
   const schema = {
     type: Type.OBJECT,
     properties: {
@@ -69,52 +68,38 @@ export const getPalmReading = async (imageFile: File, language: string = 'Englis
             }
         },
         marks: { type: Type.ARRAY, items: { type: Type.STRING } },
-        textReading: { type: Type.STRING, description: "A summary reading in " + language }
+        textReading: { type: Type.STRING, description: "Detailed Vedic summary in " + language }
     }
   };
 
-  const prompt = `You are a Vedic Palmistry expert. Analyze this palm image. 
-  1. Estimate scores (0-10) for major lines (Length, Depth, Clarity).
-  2. Estimate mount prominence (Height, Firmness/Fullness 0-10).
-  3. Identify any special marks like Triangle, Star, Island, etc.
-  4. Provide a structured JSON response fitting the schema.
-  5. Also provide a 'textReading' in ${language}. 
-     - **CRITICAL**: Do NOT use a single paragraph. 
-     - Use Markdown formatting.
-     - Use bullet points for key traits.
-     - Surround important terms or predictions with **double asterisks** for bold highlighting.
-     - Structure it as: Vitality (Life Line), Mindset (Head Line), Emotions (Heart Line), and Destiny (Fate Line).
+  const prompt = `You are a Vedic Palmistry (Hasta Rekha) expert. Analyze this palm.
   
-  Assume 'length' 10 is very long (reaching end of palm), 'depth' 10 is very deep cut.`;
+  REQUIREMENTS:
+  1. Identify lines (Life/Jeevan, Head/Matri, Heart/Hridaya) and Mounts (Parvatas).
+  2. Return JSON schema.
+  3. 'textReading' MUST use **Bullet Points** and **Bold** headers.
+  4. Incorporate Vedic terms (e.g., 'Shukra Parvata' for Venus Mount).
+  5. Structure: 
+     - **Prana & Vitality** (Life Line)
+     - **Manas & Intellect** (Head Line)
+     - **Bhavana & Emotions** (Heart Line)
+     - **Karma & Destiny** (Fate Line)`;
 
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: { 
-          parts: [
-              { inlineData: { mimeType: imageFile.type, data: base64Data } }, 
-              { text: prompt }
-          ] 
-      },
-      config: {
-          responseMimeType: "application/json",
-          responseSchema: schema
-      }
+      contents: { parts: [{ inlineData: { mimeType: imageFile.type, data: base64Data } }, { text: prompt }] },
+      config: { responseMimeType: "application/json", responseSchema: schema }
     });
-    
     const json = JSON.parse(response.text || "{}");
-    return {
-        rawMetrics: json,
-        textReading: json.textReading || "Analysis complete."
-    };
+    return { rawMetrics: json, textReading: json.textReading || "Analysis complete." };
   } catch (error) {
-    console.error(error);
     throw new Error("Failed to generate reading.");
   }
 };
 
 export interface FaceMetricResponse {
-    rawMetrics: any; // FaceMetrics structure
+    rawMetrics: any;
     textReading: string;
 }
 
@@ -134,40 +119,26 @@ export const getFaceReading = async (imageFile: File, language: string = 'Englis
             jaw: { type: Type.OBJECT, properties: { strength: { type: Type.NUMBER }, type: { type: Type.STRING, enum: ['Square/Strong', 'Round/Soft', 'Pointed'] } } },
             symmetry: { type: Type.NUMBER },
             skin: { type: Type.OBJECT, properties: { texture: { type: Type.NUMBER } } },
-            textReading: { type: Type.STRING, description: "A structured Vedic summary in " + language }
+            textReading: { type: Type.STRING, description: "Vedic summary in " + language }
         },
         required: ["forehead", "eyes", "nose", "cheeks", "mouth", "chin", "jaw", "symmetry", "skin", "textReading"]
     };
 
-    const prompt = `You are a Mukha Samudrika Shastra (Vedic Face Reading) expert. Analyze this face image.
+    const prompt = `You are a Mukha Samudrika (Vedic Face Reading) expert.
     
-    1. Estimate facial metrics on a 0-10 scale (where 10 is very prominent/large/strong).
-    2. Estimate Symmetry score (0-100).
-    3. Identify Shapes (Forehead, Nose, Jaw, etc.).
-    4. Return a structured JSON matching the schema exactly.
-    5. Also provide a 'textReading' in ${language}.
-       - Use Markdown with **Bold** terms.
-       - Focus on the 3 Zones: Mental (Forehead), Emotional (Eyes/Nose), Practical (Mouth/Jaw).`;
+    1. Analyze face metrics.
+    2. 'textReading' MUST be bulleted and structured.
+    3. Use Vedic concepts: Three Zones (Triloka), Elements (Tattvas).
+    4. Sections: **Intellect (Upper)**, **Emotion (Middle)**, **Willpower (Lower)**.`;
 
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-3-flash-preview',
-            contents: { 
-                parts: [
-                    { inlineData: { mimeType: imageFile.type, data: base64Data } },
-                    { text: prompt }
-                ] 
-            },
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: schema
-            }
+            contents: { parts: [{ inlineData: { mimeType: imageFile.type, data: base64Data } }, { text: prompt }] },
+            config: { responseMimeType: "application/json", responseSchema: schema }
         });
         const json = JSON.parse(response.text || "{}");
-        return {
-            rawMetrics: json,
-            textReading: json.textReading || "Analysis complete."
-        };
+        return { rawMetrics: json, textReading: json.textReading || "Analysis complete." };
     } catch (error) {
         throw new Error("Failed to generate reading.");
     }
@@ -189,63 +160,62 @@ export const getAstroNumeroReading = async (details: AstroNumeroDetails): Promis
     const schema = {
         type: Type.OBJECT,
         properties: {
-            reading: {
-                type: Type.STRING,
-                description: `A comprehensive, structured reading in ${lang} language. Use bullet points for lists.`
-            }
+            reading: { type: Type.STRING, description: `Comprehensive bulleted reading in ${lang}` }
         },
         required: ["reading"]
     };
 
-    const context = details.mode === 'astrology' ? 'Vedic Astrology Kundali' : 'Numerology';
+    const context = details.mode === 'astrology' ? 'Vedic Astrology (Jyotish)' : 'Vedic Numerology (Sankhya Sastra)';
     const prompt = `You are a Grand Master in ${context}. 
-    User Details: Name: ${details.name}, DOB: ${details.dob}, Place: ${details.pob}, Time: ${details.tob}. 
+    User: ${details.name}, DOB: ${details.dob}, Place: ${details.pob}, Time: ${details.tob}. 
     
-    Generate a HIGHLY DETAILED and INSIGHTFUL reading.
+    Generate a HIGHLY STRUCTURED reading in ${lang}.
     
-    CRITICAL INSTRUCTIONS FOR LANGUAGE AND FORMAT:
-    1. **LANGUAGE**: The entire output MUST be in **${lang}**. Do not use English unless the user name is English.
-    2. **FORMAT**: Structure the text using clear paragraphs and bullet points.
-    3. **HEADERS**: Use **Bold** syntax (double asterisks) for Section Titles. Do NOT use markdown headers (#).
-    4. **LISTS**: Use the bullet character '•' for list items to ensure proper formatting.
-
-    Structure the reading into these sections (Titles in Bold):
-    1. **Core Essence & Personality**
-    2. **Key Strengths** (Use bullet points)
-    3. **Challenges** (Use bullet points)
-    4. **Predictions for the coming year**
-    5. **Spiritual Advice**
+    FORMATTING RULES:
+    1. Use **Bold Headers** for sections.
+    2. Use Bullet Points (•) for all details.
+    3. Include Sanskrit terms (e.g., Dharma, Artha, Kama, Moksha).
+    ${details.mode === 'numerology' ? `
+    4. Include a dedicated section **Key Insights** at the very top.
+    5. Discuss the Missing Numbers from the birth chart.
+    6. Provide a 'Yearly Prediction' for the current year.
+    ` : ''}
     
-    ${details.mode === 'astrology' ? 'Focus on the interpretation of the chart based on the provided birth details.' : ''}`;
+    Sections:
+    1. **Key Insights** (Executive Summary)
+    2. **Prarabdha Karma** (Destiny & Life Path)
+    3. **Svabhava** (Nature & Personality)
+    4. **Artha & Karma** (Career & Finance)
+    5. **Sambandha** (Relationships)
+    6. **Upaya** (Spiritual Remedies)`;
 
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-3-flash-preview',
             contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: schema
-            }
+            config: { responseMimeType: "application/json", responseSchema: schema }
         });
-        
         const result = JSON.parse(response.text || "{}");
-        return {
-            reading: result.reading || "No response.",
-        };
+        return { reading: result.reading || "No response." };
     } catch (error) {
-        console.error(error);
         throw new Error("Failed to generate reading.");
     }
 };
 
 export const getTarotReading = async (cardName: string, language: string = 'English'): Promise<string> => {
     const ai = getAi();
-    const prompt = `You are a mystical tarot reader. Provide a detailed interpretation for the "${cardName}" card. Cover its general meaning, love, career, and advice. 
+    const prompt = `You are a Vedic Tarot Master. Card: "${cardName}".
     
-    CRITICAL RULES:
-    1. Output STRICTLY in ${language} language.
-    2. Do NOT use markdown headers (like #).
-    3. Use **Bold** for titles.`;
+    Provide a reading in ${language}.
+    
+    FORMAT:
+    - **Visual Symbolism (Drishti)**: Bullet points on imagery.
+    - **Tattva (Element)**: Fire/Water/Air/Earth connection.
+    - **Graha (Planetary Influence)**: Which planet rules this card.
+    - **Phala (Prediction)**: What will happen (Love, Career).
+    - **Upaya (Guidance)**: Spiritual advice.
+    
+    Use bullet points strictly.`;
 
     try {
         const response = await ai.models.generateContent({
@@ -260,12 +230,17 @@ export const getTarotReading = async (cardName: string, language: string = 'Engl
 
 export const getRemedy = async (concern: string, language: string = 'English'): Promise<string> => {
     const ai = getAi();
-    const prompt = `You are a wise spiritual guide. The user has this concern: "${concern}". Provide a detailed and comforting Vedic remedy, mantra, and practical guidance.
+    const prompt = `You are a Vedic Guru. User concern: "${concern}".
     
-    CRITICAL RULES:
-    1. Output STRICTLY in ${language} language.
-    2. Do NOT use markdown headers (like #).
-    3. Use **Bold** for titles.`;
+    Provide remedies in ${language}.
+    
+    FORMAT:
+    - **Dosha Analysis**: Which dosha (Vata/Pitta/Kapha) is aggravated?
+    - **Mantra Therapy**: Specific mantra to chant.
+    - **Gemstone/Yantra**: Recommendation.
+    - **Lifestyle (Vihara)**: Practical changes.
+    
+    Use bullet points.`;
 
     try {
         const response = await ai.models.generateContent({
@@ -275,5 +250,42 @@ export const getRemedy = async (concern: string, language: string = 'English'): 
         return response.text || "No response.";
     } catch (error) {
         throw new Error("Failed to generate guidance.");
+    }
+};
+
+export interface DreamAnalysisResponse {
+    meaning: string;
+    luckyNumbers: number[];
+    symbols: string[];
+}
+
+export const analyzeDream = async (dreamText: string, language: string = 'English'): Promise<DreamAnalysisResponse> => {
+    const ai = getAi();
+    const schema = {
+        type: Type.OBJECT,
+        properties: {
+            meaning: { type: Type.STRING, description: "Bulleted interpretation" },
+            luckyNumbers: { type: Type.ARRAY, items: { type: Type.INTEGER } },
+            symbols: { type: Type.ARRAY, items: { type: Type.STRING } }
+        },
+        required: ["meaning", "luckyNumbers", "symbols"]
+    };
+
+    const prompt = `You are a Swapna Shastra (Vedic Dream) expert. Dream: "${dreamText}"
+    
+    1. Interpret using Vedic symbolism.
+    2. Identify **Chakra** affected.
+    3. Identify **Omen** (Shubha/Ashubha).
+    4. Provide 'meaning' in ${language} using bullet points.`;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-3-flash-preview',
+            contents: prompt,
+            config: { responseMimeType: "application/json", responseSchema: schema }
+        });
+        return JSON.parse(response.text || "{}");
+    } catch (error) {
+        throw new Error("Failed to interpret dream.");
     }
 };

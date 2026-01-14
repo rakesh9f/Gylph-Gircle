@@ -434,7 +434,11 @@ const NumerologyAstrology: React.FC<NumerologyAstrologyProps> = ({ mode }) => {
                               <FullReport 
                                 reading={reading} 
                                 title={t('yourSummary', { featureName })} 
-                                imageUrl={mode === 'astrology' ? db.image_assets?.find(a => a.id === 'chart_kundali_default')?.path : undefined}
+                                // Specific Vedic Image for Numerology, Chart Asset for Astrology
+                                imageUrl={mode === 'numerology' 
+                                    ? "https://images.unsplash.com/photo-1542645976-7973d4177b9c?q=80&w=800" 
+                                    : db.image_assets?.find(a => a.id === 'chart_kundali_default')?.path
+                                }
                                 chartData={engineData}
                               />
                           )}

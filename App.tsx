@@ -9,6 +9,7 @@ import Header from './components/Header';
 import Footer from './components/Footer';
 import Remedy from './components/Remedy';
 import FaceReading from './components/FaceReading';
+import DreamAnalysis from './components/DreamAnalysis';
 import AdminDashboard from './components/AdminDashboard';
 import AdminConfig from './components/AdminConfig';
 import AdminDB from './components/AdminDB';
@@ -16,6 +17,7 @@ import MasterLogin from './components/MasterLogin';
 import RevenueDashboard from './components/RevenueDashboard';
 import NumerologyAstrology from './components/NumerologyAstrology';
 import Tarot from './components/Tarot';
+import Store from './components/Store';
 import AdminGuard from './components/AdminGuard';
 import { useAuth } from './context/AuthContext';
 import { dbService } from './services/db';
@@ -30,6 +32,7 @@ import LargeTextMode from './components/LargeTextMode';
 import ReferralProgram from './components/ReferralProgram';
 import Leaderboard from './components/Leaderboard';
 import LanguageSwitcher from './components/LanguageSwitcher';
+import GamificationHUD from './components/GamificationHUD';
 
 // Protected Route Wrapper for Standard Users
 interface ProtectedRouteProps {
@@ -72,6 +75,7 @@ function App() {
                  <DailyReminder />
                  <BadgeCounter />
                  <LargeTextMode />
+                 {!isAdminPage && <GamificationHUD />}
                  {user?.email === 'rocky@glyph.co' && <ABTestStatus />}
                  
                  {!isAdminPage && (
@@ -111,7 +115,9 @@ function App() {
                 <Route path="/astrology" element={<ProtectedRoute><NumerologyAstrology mode="astrology" /></ProtectedRoute>} />
                 <Route path="/tarot" element={<ProtectedRoute><Tarot /></ProtectedRoute>} />
                 <Route path="/face-reading" element={<ProtectedRoute><FaceReading /></ProtectedRoute>} />
+                <Route path="/dream-analysis" element={<ProtectedRoute><DreamAnalysis /></ProtectedRoute>} />
                 <Route path="/remedy" element={<ProtectedRoute><Remedy /></ProtectedRoute>} />
+                <Route path="/store" element={<ProtectedRoute><Store /></ProtectedRoute>} />
                 <Route path="/referrals" element={<ProtectedRoute><ReferralProgram /></ProtectedRoute>} />
                 <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
                 
