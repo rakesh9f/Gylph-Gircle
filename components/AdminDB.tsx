@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useDb } from '../hooks/useDb';
@@ -22,8 +21,8 @@ const AdminDB: React.FC = () => {
   );
 
   // Get all unique keys from data to form headers, fallback to basic if empty
-  const headers = data.length > 0 
-    ? Array.from(new Set(data.flatMap(Object.keys)))
+  const headers: string[] = data.length > 0 
+    ? Array.from(new Set(data.flatMap((record: any) => Object.keys(record))))
     : ['id', 'status', 'name', 'description']; // Default schema guess
 
   // Fields to exclude from the Create Form
