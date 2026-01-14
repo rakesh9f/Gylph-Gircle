@@ -3,19 +3,26 @@ import React, { useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { getRemedy } from '../services/geminiService';
 import Button from './shared/Button';
-import Loader from './shared/Loader';
+import ProgressBar from './shared/ProgressBar';
 import { useTranslation } from '../hooks/useTranslation';
 import { usePayment } from '../context/PaymentContext';
 import FullReport from './FullReport';
+import { useAuth } from '../context/AuthContext';
 
 const Remedy: React.FC = () => {
   const [concern, setConcern] = useState('');
   const [reading, setReading] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [progress, setProgress] = useState<number>(0);
   const [error, setError] = useState<string>('');
   const [isPaid, setIsPaid] = useState<boolean>(false);
   const { t, language } = useTranslation();
   const { openPayment } = usePayment();
+  const { user } = useAuth();
+
+  // Admin Check
+  const ADMIN_EMAILS = ['master@gylphcircle.com', 'admin@gylphcircle.com'];
+  const isAdmin = user && ADMIN_EMAILS.includes(user.email);
 
   const getLanguageName = (code: string) => {
       const map: Record<string, string> = {
@@ -33,14 +40,25 @@ const Remedy: React.FC = () => {
     }
 
     setIsLoading(true);
+    setProgress(0);
     setReading('');
     setError('');
     setIsPaid(false);
 
+    const timer = setInterval(() => {
+        setProgress(prev => {
+            if (prev >= 90) return prev;
+            return prev + (Math.random() * 10);
+        });
+    }, 500);
+
     try {
       const result = await getRemedy(concern, getLanguageName(language));
+      clearInterval(timer);
+      setProgress(100);
       setReading(result);
     } catch (err: any) {
+      clearInterval(timer);
       setError(`Failed to get guidance: ${err.message}. Please try again.`);
     } finally {
       setIsLoading(false);
@@ -83,9 +101,18 @@ const Remedy: React.FC = () => {
 
               <div className="min-h-[16rem] bg-black bg-opacity-30 p-6 rounded-lg border border-amber-500/20 w-full">
                 <h3 className="text-2xl font-semibold text-amber-300 mb-4">{t('yourReading')}</h3>
-                {isLoading && <Loader />}
+                
+                {isLoading && (
+                    <ProgressBar 
+                        progress={progress} 
+                        message="Channeling Guidance..." 
+                        estimatedTime="Approx. 8 seconds"
+                    />
+                )}
+                
                 {error && <p className="text-red-400">{error}</p>}
-                {reading && (
+                
+                {reading && !isLoading && (
                    <div className="space-y-4 text-amber-100 w-full">
                         {!isPaid ? (
                             <>
@@ -94,10 +121,18 @@ const Remedy: React.FC = () => {
                                     {reading.replace(/#/g, '').replace(/\*\*/g, '')}
                                     <span className="absolute bottom-[-10px] right-4 text-4xl text-amber-500/20 font-serif">”</span>
                                 </div>
-                                <div className="pt-4 border-t border-amber-500/20">
+                                <div className="pt-4 border-t border-amber-500/20 flex flex-col gap-2">
                                    <Button onClick={handleReadMore} className="w-full bg-gradient-to-r from-amber-600 to-maroon-700 border-amber-400 shadow-[0_0_20px_rgba(251,191,36,0.4)]">
                                        {t('readMore')}
                                    </Button>
+                                   {isAdmin && (
+                                      <button 
+                                        onClick={() => setIsPaid(true)} 
+                                        className="text-xs text-amber-500 hover:text-amber-300 underline font-mono"
+                                      >
+                                          👑 Admin Access: Skip Payment
+                                      </button>
+                                   )}
                                </div>
                             </>
                         ) : (

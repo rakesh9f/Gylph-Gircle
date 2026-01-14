@@ -80,6 +80,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             localStorage.setItem('gylph_user_id', validUser.id);
             setUser(validUser);
             setHistory(dbService.getReadings(validUser.id));
+            
+            // Auto-set Admin Session if role matches (Fixes Redirect Loop)
+            if (validUser.role === 'admin') {
+                localStorage.setItem('glyph_admin_session', JSON.stringify({ 
+                    user: validUser.email, 
+                    role: 'admin', 
+                    method: 'Standard Login' 
+                }));
+            }
         } else {
             throw new Error("Invalid email or password");
         }
@@ -123,7 +132,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           
           // Check for Admin Privilege via email
           if(user.role === 'admin') {
-              localStorage.setItem('glyph_admin_session', JSON.stringify({ user: user.email, role: 'admin' }));
+              localStorage.setItem('glyph_admin_session', JSON.stringify({ 
+                  user: user.email, 
+                  role: 'admin',
+                  method: 'Google Login'
+              }));
           }
       } catch (e) {
           console.error("Google Login Context Error", e);

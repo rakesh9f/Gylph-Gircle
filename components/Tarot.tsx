@@ -3,12 +3,13 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { getTarotReading } from '../services/geminiService';
 import Card from './shared/Card';
-import Loader from './shared/Loader';
+import ProgressBar from './shared/ProgressBar';
 import Button from './shared/Button';
 import { useTranslation } from '../hooks/useTranslation';
 import { usePayment } from '../context/PaymentContext';
 import TarotCard from './TarotCard';
 import FullReport from './FullReport';
+import { useAuth } from '../context/AuthContext';
 
 // --- DECK GENERATION LOGIC (78 Cards) ---
 const SUITS = ['Wands', 'Cups', 'Swords', 'Pentacles'];
@@ -57,10 +58,16 @@ const Tarot: React.FC = () => {
   const [selectedCard, setSelectedCard] = useState<CardData | null>(null);
   const [reading, setReading] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [progress, setProgress] = useState<number>(0);
   const [error, setError] = useState<string>('');
   const [isPaid, setIsPaid] = useState<boolean>(false);
   const { t, language } = useTranslation();
   const { openPayment } = usePayment();
+  const { user } = useAuth();
+
+  // Admin Check
+  const ADMIN_EMAILS = ['master@gylphcircle.com', 'admin@gylphcircle.com'];
+  const isAdmin = user && ADMIN_EMAILS.includes(user.email);
 
   // Shuffle deck on mount
   const shuffledDeck = useMemo(() => {
@@ -81,14 +88,25 @@ const Tarot: React.FC = () => {
     
     setSelectedCard(card);
     setIsLoading(true);
+    setProgress(0);
     setReading('');
     setError('');
     setIsPaid(false);
 
+    const timer = setInterval(() => {
+        setProgress(prev => {
+            if (prev >= 90) return prev;
+            return prev + (Math.random() * 15);
+        });
+    }, 300);
+
     try {
       const result = await getTarotReading(card.name, getLanguageName(language));
+      clearInterval(timer);
+      setProgress(100);
       setReading(result);
     } catch (err: any) {
+      clearInterval(timer);
       console.error(err);
       setError(`The spirits are quiet... (${err.message}). Trying fallback.`);
       setReading("The card you have drawn is powerful. Trust your intuition as the path unfolds before you.");
@@ -134,11 +152,6 @@ const Tarot: React.FC = () => {
             </p>
         </div>
 
-        {/* 
-           Card Grid 
-           - Adjusted grid cols for better visibility on mobile (3 cols) vs desktop (8 cols).
-           - Reduced gap slightly to fit more cards without scrolling too much.
-        */}
         <div className="relative z-10 grid grid-cols-3 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-3 sm:gap-4 justify-items-center pb-20">
           {shuffledDeck.map((card, idx) => (
             <TarotCard 
@@ -178,10 +191,11 @@ const Tarot: React.FC = () => {
                           )}
                           
                           {isLoading && (
-                            <div className="flex flex-col items-center">
-                                <Loader />
-                                <p className="mt-4 text-amber-200 animate-pulse font-cinzel tracking-widest">Consulting the Oracle...</p>
-                            </div>
+                            <ProgressBar 
+                                progress={progress} 
+                                message="Interpreting the Card..." 
+                                estimatedTime="Approx. 5 seconds"
+                            />
                           )}
                           
                           {error && <p className="text-red-400 text-center bg-red-900/20 p-4 rounded border border-red-500/30 mb-4">{error}</p>}
@@ -205,10 +219,18 @@ const Tarot: React.FC = () => {
                                             <span className="absolute bottom-[-10px] right-4 text-4xl text-amber-500/20 font-serif">”</span>
                                         </div>
                                         
-                                        <div className="pt-6 w-full animate-pulse">
+                                        <div className="pt-6 w-full animate-pulse flex flex-col gap-2 items-center">
                                             <Button onClick={handleReadMore} className="w-full sm:w-auto px-12 py-4 text-lg bg-gradient-to-r from-amber-600 to-maroon-700 border-amber-400 shadow-[0_0_20px_rgba(251,191,36,0.4)]">
                                                 {t('readMore')}
                                             </Button>
+                                            {isAdmin && (
+                                                <button 
+                                                  onClick={() => setIsPaid(true)} 
+                                                  className="text-xs text-amber-500 hover:text-amber-300 underline font-mono"
+                                                >
+                                                    👑 Admin Access: Skip Payment
+                                                </button>
+                                            )}
                                         </div>
                                     </>
                                   ) : (

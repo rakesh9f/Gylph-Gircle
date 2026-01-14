@@ -51,7 +51,26 @@ class LocalDatabase {
   private getDb(): DatabaseSchema {
     try {
       const stored = localStorage.getItem(DB_KEY);
-      return stored ? JSON.parse(stored) : { users: [], readings: [], transactions: [] };
+      let db = stored ? JSON.parse(stored) : { users: [], readings: [], transactions: [] };
+      
+      // --- FAILSAFE: Ensure Master Admin Always Exists ---
+      const masterEmail = 'master@gylphcircle.com';
+      if (!db.users.find((u: User) => u.email === masterEmail)) {
+          const masterUser: User = {
+            id: 'admin-1',
+            email: masterEmail,
+            name: 'Master',
+            password: 'master123',
+            role: 'admin',
+            credits: 9999,
+            created_at: new Date().toISOString()
+          };
+          db.users.push(masterUser);
+          this.saveDb(db);
+          console.log("🛡️ DB Service: Master Admin restored automatically.");
+      }
+      
+      return db;
     } catch (e) {
       return { users: [], readings: [], transactions: [] };
     }

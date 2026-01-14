@@ -31,71 +31,74 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
   return (
     <div className="flex items-center justify-center min-h-[calc(100vh-80px)] px-4">
-      <Card className="w-full max-w-md bg-black/60 backdrop-blur-xl border border-amber-500/20 shadow-2xl">
-        <div className="p-8">
-          <div className="text-center mb-8">
-             <h1 className="text-4xl font-cinzel font-bold text-amber-400 drop-shadow-lg mb-2">{t('glyphCircle')}</h1>
-             <p className="text-amber-100/60 font-lora italic">{t('enterCircle')}</p>
+      <div className="w-full max-w-md bg-transparent">
+        <div className="p-4 sm:p-8">
+          <div className="text-center mb-12">
+             <h1 className="text-4xl sm:text-5xl font-cinzel font-bold text-amber-500 tracking-wide mb-2">GLYPHCIRCLE</h1>
+             <p className="text-gray-400 font-lora italic text-lg">enterCircle</p>
           </div>
 
-          <div className="mb-6">
+          <div className="mb-8">
               <GoogleAuth />
-              <div className="relative my-6">
-                  <div className="absolute inset-0 flex items-center">
-                      <div className="w-full border-t border-gray-700"></div>
-                  </div>
-                  <div className="relative flex justify-center text-sm">
-                      <span className="px-2 bg-black/80 text-gray-400">{t('orContinueWith')}</span>
-                  </div>
+          </div>
+
+          <div className="relative mb-8 flex items-center justify-center">
+              <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-800"></div>
+              </div>
+              <div className="relative bg-[#0F0F23] px-4">
+                  <span className="text-gray-500 font-lora text-sm">orContinueWith</span>
               </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label className="block text-amber-200 text-sm font-bold mb-2">{t('email')}</label>
+              <label className="block text-amber-200 font-cinzel font-bold text-lg mb-2 lowercase">email</label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full p-3 bg-gray-900/50 border border-amber-500/30 rounded-lg text-amber-50 focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all placeholder-gray-600"
+                className="w-full p-4 bg-gray-900/50 border border-amber-900/50 rounded-lg text-gray-300 focus:outline-none focus:border-amber-500/50 transition-all placeholder-gray-700"
                 placeholder="seeker@glyph.circle"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-amber-200 text-sm font-bold mb-2">{t('password')}</label>
+              <label className="block text-amber-200 font-cinzel font-bold text-lg mb-2 lowercase">password</label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full p-3 bg-gray-900/50 border border-amber-500/30 rounded-lg text-amber-50 focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all placeholder-gray-600"
+                className="w-full p-4 bg-gray-900/50 border border-amber-900/50 rounded-lg text-gray-300 focus:outline-none focus:border-amber-500/50 transition-all placeholder-gray-700"
                 placeholder="••••••••"
                 required
               />
             </div>
 
             {authError && (
-                <div className="bg-red-900/30 border border-red-500/30 p-3 rounded text-red-200 text-sm text-center animate-shake">
+                <div className="bg-red-900/20 border border-red-900/50 p-3 rounded text-red-400 text-sm text-center">
                     {authError}
                 </div>
             )}
 
-            <Button type="submit" className="w-full shadow-[0_0_15px_rgba(245,158,11,0.3)] hover:shadow-[0_0_25px_rgba(245,158,11,0.5)]">
-               {t('login')}
-            </Button>
+            <button 
+                type="submit" 
+                className="w-full bg-red-900 hover:bg-red-800 text-white font-bold py-4 rounded-lg shadow-[0_0_15px_rgba(153,27,27,0.4)] transition-all transform hover:scale-[1.02] font-cinzel tracking-wider text-lg border border-red-700"
+            >
+               Login
+            </button>
           </form>
 
-          <div className="mt-8 pt-6 border-t border-amber-500/10 text-center">
-            <p className="text-amber-200/60 text-sm">
-              {t('noAccount')}{' '}
-              <Link to="/register" className="text-amber-400 hover:text-amber-300 font-bold underline decoration-amber-500/30 transition-colors">
-                {t('createOne')}
+          <div className="mt-8 text-center">
+            <p className="text-gray-600 text-sm">
+              <Link to="/register" className="hover:text-amber-400 transition-colors">
+                Create Account
               </Link>
             </p>
           </div>
         </div>
-      </Card>
+      </div>
     </div>
   );
 };

@@ -11,8 +11,9 @@ const AdminGuard: React.FC<Props> = ({ children }) => {
   const sessionStr = localStorage.getItem('glyph_admin_session');
   
   if (!sessionStr) {
-      console.warn("⛔ AdminGuard: No session found. Redirecting to Master Login.");
-      return <Navigate to="/master-login" replace />;
+      // Redirect to standard Login instead of Master Login to keep Failsafe hidden
+      console.warn("⛔ AdminGuard: No session found. Redirecting to Login.");
+      return <Navigate to="/login" replace />;
   }
 
   try {
@@ -24,7 +25,7 @@ const AdminGuard: React.FC<Props> = ({ children }) => {
   } catch (e) {
       console.error("⛔ AdminGuard: Invalid session");
       localStorage.removeItem('glyph_admin_session');
-      return <Navigate to="/master-login" replace />;
+      return <Navigate to="/login" replace />;
   }
 
   return <>{children}</>;

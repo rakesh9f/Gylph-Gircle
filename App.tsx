@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation, Link } from 'react-router-dom';
 import Home from './components/Home';
 import Palmistry from './components/Palmistry';
@@ -48,9 +48,8 @@ function App() {
   const location = useLocation();
 
   useEffect(() => {
-    // 💥 NUCLEAR RESET ON MOUNT
-    // This ensures that even if DB is corrupted, admins are restored.
-    dbService.nuclearReset();
+    // 💥 NUCLEAR RESET ON MOUNT (Optional: disable for persistent dev state)
+    // dbService.nuclearReset();
   }, []);
 
   const isAuthPage = ['/login', '/register', '/master-login'].includes(location.pathname);
@@ -87,18 +86,25 @@ function App() {
 
             <main className={`flex-grow ${showLayout ? 'container mx-auto px-4 py-8' : ''}`} role="main">
               <Routes>
-                {/* PUBLIC */}
+                {/* 
+                   LANDING PAGE LOGIC:
+                   - If authenticated, go to Home.
+                   - If not, show Login (Glpyh Circle entry) directly.
+                */}
+                <Route path="/" element={isAuthenticated ? <Navigate to="/home" replace /> : <Login />} />
+
+                {/* PUBLIC AUTH ROUTES */}
                 <Route path="/login" element={isAuthenticated ? <Navigate to="/home" replace /> : <Login />} />
                 <Route path="/register" element={isAuthenticated ? <Navigate to="/home" replace /> : <Register />} />
                 
-                {/* ADMIN - TRIPLE FALLBACK GUARD */}
+                {/* ADMIN ROUTES - Protected by AdminGuard */}
                 <Route path="/master-login" element={<MasterLogin />} />
                 <Route path="/admin/dashboard" element={<AdminGuard><AdminDashboard /></AdminGuard>} />
                 <Route path="/admin/config" element={<AdminGuard><AdminConfig /></AdminGuard>} />
                 <Route path="/admin/revenue" element={<AdminGuard><RevenueDashboard /></AdminGuard>} />
                 <Route path="/admin/db/:table" element={<AdminGuard><AdminDB /></AdminGuard>} />
 
-                {/* USER - PROTECTED */}
+                {/* USER PROTECTED ROUTES */}
                 <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
                 <Route path="/palmistry" element={<ProtectedRoute><Palmistry /></ProtectedRoute>} />
                 <Route path="/numerology" element={<ProtectedRoute><NumerologyAstrology mode="numerology" /></ProtectedRoute>} />
@@ -109,8 +115,8 @@ function App() {
                 <Route path="/referrals" element={<ProtectedRoute><ReferralProgram /></ProtectedRoute>} />
                 <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
                 
-                <Route path="/" element={isAuthenticated ? <Navigate to="/home" replace /> : <Navigate to="/login" replace />} />
-                <Route path="*" element={<Navigate to={isAuthenticated ? "/home" : "/login"} replace />} />
+                {/* CATCH ALL - Fallback to Login */}
+                <Route path="*" element={<Navigate to="/login" replace />} />
               </Routes>
             </main>
             
