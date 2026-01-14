@@ -77,13 +77,11 @@ const Tarot: React.FC = () => {
     setIsPaid(false);
 
     try {
-      // Simulate API call or real call
       const result = await getTarotReading(card.name);
       setReading(result);
     } catch (err: any) {
       console.error(err);
       setError(`The spirits are quiet... (${err.message}). Trying fallback.`);
-      // Fallback text if API fails so user sees something
       setReading("The card you have drawn is powerful. Trust your intuition as the path unfolds before you.");
     } finally {
       setIsLoading(false);
@@ -104,7 +102,7 @@ const Tarot: React.FC = () => {
 
   return (
     <>
-      <div className="max-w-7xl mx-auto px-2 relative min-h-screen pb-12">
+      <div className="max-w-7xl mx-auto px-4 relative min-h-screen pb-12">
           {/* Background Particle Effects */}
           <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
              <div className="absolute top-10 left-10 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl animate-float"></div>
@@ -127,8 +125,12 @@ const Tarot: React.FC = () => {
             </p>
         </div>
 
-        {/* Card Grid - FULL 78 CARDS */}
-        <div className="relative z-10 grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 xl:grid-cols-13 gap-2 sm:gap-4 justify-items-center perspective-1000">
+        {/* 
+           Card Grid 
+           - Adjusted grid cols for better visibility on mobile (3 cols) vs desktop (8 cols).
+           - Reduced gap slightly to fit more cards without scrolling too much.
+        */}
+        <div className="relative z-10 grid grid-cols-3 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-3 sm:gap-4 justify-items-center pb-20">
           {shuffledDeck.map((card, idx) => (
             <TarotCard 
                key={`${card.name}-${idx}`}
@@ -143,7 +145,7 @@ const Tarot: React.FC = () => {
         {/* Reading Modal */}
         {(isLoading || selectedCard) && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in-up">
-              <Card className="max-w-2xl w-full max-h-[90vh] overflow-y-auto border-amber-400/40 shadow-[0_0_50px_rgba(0,0,0,0.8)] bg-gray-900/90">
+              <Card className="max-w-2xl w-full max-h-[90vh] overflow-y-auto border-amber-400/40 shadow-[0_0_50px_rgba(0,0,0,0.8)] bg-gray-900/95">
                   <div className="p-6 sm:p-8 relative">
                       <button 
                         onClick={handleCloseModal}
@@ -156,7 +158,7 @@ const Tarot: React.FC = () => {
 
                       <div className="flex flex-col items-center">
                           {selectedCard && (
-                              <div className="w-48 sm:w-56 aspect-[2/3.4] mb-8 transform hover:scale-105 transition-transform duration-700 perspective-1000">
+                              <div className="w-48 sm:w-56 aspect-[2/3] mb-8 transform hover:scale-105 transition-transform duration-700">
                                 <TarotCard 
                                     card={selectedCard} 
                                     index={0} 
@@ -175,8 +177,8 @@ const Tarot: React.FC = () => {
                           
                           {error && <p className="text-red-400 text-center bg-red-900/20 p-4 rounded border border-red-500/30 mb-4">{error}</p>}
                           
-                          {(reading || error) && selectedCard && (
-                              <div className="text-center space-y-6 w-full">
+                          {(reading || error) && selectedCard && !isLoading && (
+                              <div className="text-center space-y-6 w-full animate-fade-in-up">
                                   {!isPaid ? (
                                     <>
                                         <div>
