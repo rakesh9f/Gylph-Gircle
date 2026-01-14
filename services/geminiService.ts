@@ -113,16 +113,41 @@ export const getPalmReading = async (imageFile: File, language: string = 'Englis
   }
 };
 
-export const getFaceReading = async (imageFile: File, language: string = 'English'): Promise<string> => {
+export interface FaceMetricResponse {
+    rawMetrics: any; // FaceMetrics structure
+    textReading: string;
+}
+
+export const getFaceReading = async (imageFile: File, language: string = 'English'): Promise<FaceMetricResponse> => {
     const ai = getAi();
     const base64Data = await fileToBase64(imageFile);
 
-    const prompt = `You are an expert physiognomist. Analyze this face image. Provide a short 2-3 line personality insight based on features.
+    const schema = {
+        type: Type.OBJECT,
+        properties: {
+            forehead: { type: Type.OBJECT, properties: { height: { type: Type.NUMBER }, width: { type: Type.NUMBER }, wrinkles: { type: Type.NUMBER }, shape: { type: Type.STRING, enum: ['High/Broad', 'Low/Narrow', 'Rounded', 'Square'] } } },
+            eyes: { type: Type.OBJECT, properties: { size: { type: Type.NUMBER }, spacing: { type: Type.STRING, enum: ['Wide', 'Close', 'Normal'] }, shape: { type: Type.STRING, enum: ['Almond', 'Round', 'Deep-set', 'Protruding'] } } },
+            nose: { type: Type.OBJECT, properties: { length: { type: Type.NUMBER }, width: { type: Type.NUMBER }, shape: { type: Type.STRING, enum: ['Straight', 'Hooked', 'Bulbous', 'Snub'] } } },
+            cheeks: { type: Type.OBJECT, properties: { prominence: { type: Type.NUMBER } } },
+            mouth: { type: Type.OBJECT, properties: { lipFullness: { type: Type.NUMBER } } },
+            chin: { type: Type.OBJECT, properties: { shape: { type: Type.STRING, enum: ['Round', 'Square', 'Pointed', 'Receding'] }, prominence: { type: Type.NUMBER } } },
+            jaw: { type: Type.OBJECT, properties: { strength: { type: Type.NUMBER }, type: { type: Type.STRING, enum: ['Square/Strong', 'Round/Soft', 'Pointed'] } } },
+            symmetry: { type: Type.NUMBER },
+            skin: { type: Type.OBJECT, properties: { texture: { type: Type.NUMBER } } },
+            textReading: { type: Type.STRING, description: "A structured Vedic summary in " + language }
+        },
+        required: ["forehead", "eyes", "nose", "cheeks", "mouth", "chin", "jaw", "symmetry", "skin", "textReading"]
+    };
+
+    const prompt = `You are a Mukha Samudrika Shastra (Vedic Face Reading) expert. Analyze this face image.
     
-    CRITICAL RULES:
-    1. Output STRICTLY in ${language} language.
-    2. Do NOT use markdown headers (like # or ##).
-    3. Use **Bold** for key terms only.`;
+    1. Estimate facial metrics on a 0-10 scale (where 10 is very prominent/large/strong).
+    2. Estimate Symmetry score (0-100).
+    3. Identify Shapes (Forehead, Nose, Jaw, etc.).
+    4. Return a structured JSON matching the schema exactly.
+    5. Also provide a 'textReading' in ${language}.
+       - Use Markdown with **Bold** terms.
+       - Focus on the 3 Zones: Mental (Forehead), Emotional (Eyes/Nose), Practical (Mouth/Jaw).`;
 
     try {
         const response = await ai.models.generateContent({
@@ -133,8 +158,16 @@ export const getFaceReading = async (imageFile: File, language: string = 'Englis
                     { text: prompt }
                 ] 
             },
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: schema
+            }
         });
-        return response.text || "No response generated.";
+        const json = JSON.parse(response.text || "{}");
+        return {
+            rawMetrics: json,
+            textReading: json.textReading || "Analysis complete."
+        };
     } catch (error) {
         throw new Error("Failed to generate reading.");
     }

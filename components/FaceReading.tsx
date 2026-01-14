@@ -2,6 +2,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getFaceReading } from '../services/geminiService';
+import { calculateFaceReading, FaceAnalysis } from '../services/faceReadingEngine';
 import Button from './shared/Button';
 import ProgressBar from './shared/ProgressBar';
 import { useTranslation } from '../hooks/useTranslation';
@@ -13,6 +14,8 @@ const FaceReading: React.FC = () => {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [reading, setReading] = useState<string>('');
+  const [analysisData, setAnalysisData] = useState<FaceAnalysis | null>(null);
+  
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [progress, setProgress] = useState<number>(0);
   const [error, setError] = useState<string>('');
@@ -87,6 +90,7 @@ const FaceReading: React.FC = () => {
             handleStopCamera();
             
             setReading('');
+            setAnalysisData(null);
             setError('');
             setIsPaid(false);
           }
@@ -100,6 +104,7 @@ const FaceReading: React.FC = () => {
     if (file) {
       setImageFile(file);
       setReading('');
+      setAnalysisData(null);
       setError('');
       setIsPaid(false);
       const reader = new FileReader();
@@ -128,6 +133,7 @@ const FaceReading: React.FC = () => {
     setIsLoading(true);
     setProgress(0);
     setReading('');
+    setAnalysisData(null);
     setError('');
 
     const timer = setInterval(() => {
@@ -139,9 +145,16 @@ const FaceReading: React.FC = () => {
 
     try {
       const result = await getFaceReading(imageFile, getLanguageName(language));
+      
       clearInterval(timer);
       setProgress(100);
-      setReading(result);
+      
+      if (result.rawMetrics) {
+          const analysis = calculateFaceReading(result.rawMetrics);
+          setAnalysisData(analysis);
+      }
+      setReading(result.textReading);
+
     } catch (err: any) {
       clearInterval(timer);
       setError(`Failed to get reading: ${err.message}. Please try again.`);
@@ -154,6 +167,153 @@ const FaceReading: React.FC = () => {
     openPayment(() => {
         setIsPaid(true);
     });
+  };
+
+  // Helper for rendering structured text (Markdown-like)
+  const renderStructuredText = (text: string) => {
+    if (!text) return null;
+    const lines = text.split('\n').filter(l => l.trim().length > 0);
+
+    return (
+      <div className="space-y-3 font-lora text-amber-100/90 leading-relaxed text-sm">
+        {lines.map((line, idx) => {
+          const isBullet = line.trim().startsWith('-') || line.trim().startsWith('•') || line.trim().startsWith('*');
+          const cleanLine = line.replace(/^[-•*]\s*/, '');
+          
+          const parts = cleanLine.split(/(\*\*.*?\*\*)/g);
+          const content = parts.map((part, i) => {
+            if (part.startsWith('**') && part.endsWith('**')) {
+              return <span key={i} className="text-amber-400 font-bold">{part.slice(2, -2)}</span>;
+            }
+            return part;
+          });
+
+          if (isBullet) {
+            return (
+              <div key={idx} className="flex items-start gap-2 pl-2">
+                <span className="text-amber-500 mt-1.5 text-[8px]">●</span>
+                <p>{content}</p>
+              </div>
+            );
+          }
+          return <p key={idx}>{content}</p>;
+        })}
+      </div>
+    );
+  };
+
+  const renderVedicDashboard = () => {
+      if (!analysisData) return null;
+      const { zones, planetary, charts } = analysisData;
+
+      return (
+          <div className="space-y-6 mt-6 animate-fade-in-up">
+              {/* 1. Zone Dominance */}
+              <div className="bg-black/30 p-4 rounded border border-amber-500/10">
+                  <h4 className="text-amber-400 font-bold text-xs uppercase tracking-widest mb-3">Mukha Trikona (3 Zones)</h4>
+                  
+                  {/* Visual Bars */}
+                  <div className="space-y-3 mb-3">
+                      <div>
+                          <div className="flex justify-between text-xs mb-1">
+                              <span className="text-amber-100">Upper (Forehead)</span>
+                              <span className="text-amber-400 font-bold">{zones.upper}%</span>
+                          </div>
+                          <div className="w-full h-1.5 bg-gray-800 rounded-full">
+                              <div className="h-full bg-blue-500" style={{ width: `${zones.upper}%` }}></div>
+                          </div>
+                      </div>
+                      <div>
+                          <div className="flex justify-between text-xs mb-1">
+                              <span className="text-amber-100">Middle (Eyes/Nose)</span>
+                              <span className="text-amber-400 font-bold">{zones.middle}%</span>
+                          </div>
+                          <div className="w-full h-1.5 bg-gray-800 rounded-full">
+                              <div className="h-full bg-green-500" style={{ width: `${zones.middle}%` }}></div>
+                          </div>
+                      </div>
+                      <div>
+                          <div className="flex justify-between text-xs mb-1">
+                              <span className="text-amber-100">Lower (Mouth/Chin)</span>
+                              <span className="text-amber-400 font-bold">{zones.lower}%</span>
+                          </div>
+                          <div className="w-full h-1.5 bg-gray-800 rounded-full">
+                              <div className="h-full bg-red-500" style={{ width: `${zones.lower}%` }}></div>
+                          </div>
+                      </div>
+                  </div>
+                  <div className="text-center bg-gray-800/50 p-2 rounded text-xs text-amber-200">
+                      Dominant: <strong className="text-white">{zones.dominance}</strong> ({analysisData.personality.primary})
+                  </div>
+              </div>
+
+              {/* 2. Planetary Influences Grid */}
+              <div className="bg-black/30 p-4 rounded border border-amber-500/10">
+                  <h4 className="text-amber-400 font-bold text-xs uppercase tracking-widest mb-3">Planetary Influences</h4>
+                  <div className="grid grid-cols-4 gap-2">
+                      {Object.entries(planetary).map(([planet, score]) => (
+                          <div key={planet} className="bg-gray-900 p-2 rounded text-center border border-gray-700">
+                              <div className="text-[10px] uppercase text-gray-400 mb-1">{planet}</div>
+                              <div className={`font-bold text-sm ${(score as number) > 80 ? 'text-green-400' : 'text-amber-100'}`}>{score as number}</div>
+                          </div>
+                      ))}
+                  </div>
+              </div>
+
+              {/* 3. Detailed Charts (Grid of 6 Cards) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  
+                  {/* Chart 2: Forehead */}
+                  <div className="bg-gray-900/60 p-3 rounded border border-amber-500/20">
+                      <h5 className="text-[10px] text-amber-500 uppercase tracking-widest mb-2">Forehead Wisdom</h5>
+                      <div className="flex justify-between text-xs border-b border-gray-700 pb-1 mb-1">
+                          <span>Jupiter</span> <span className="text-white">{charts.foreheadAnalysis.jupiter}</span>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                          <span>Career</span> <span className="text-green-300">{charts.foreheadAnalysis.career}</span>
+                      </div>
+                  </div>
+
+                  {/* Chart 3: Nose */}
+                  <div className="bg-gray-900/60 p-3 rounded border border-amber-500/20">
+                      <h5 className="text-[10px] text-amber-500 uppercase tracking-widest mb-2">Nose Ambition</h5>
+                      <div className="flex justify-between text-xs border-b border-gray-700 pb-1 mb-1">
+                          <span>Mars Score</span> <span className="text-red-300 font-bold">{charts.noseClassification.mars}</span>
+                      </div>
+                      <div className="text-xs text-center text-amber-100 mt-1 italic">
+                          "{charts.noseClassification.wealth}"
+                      </div>
+                  </div>
+
+                  {/* Chart 4: Eyes */}
+                  <div className="bg-gray-900/60 p-3 rounded border border-amber-500/20">
+                      <h5 className="text-[10px] text-amber-500 uppercase tracking-widest mb-2">Eye Character</h5>
+                      <div className="text-xs text-white mb-1 font-bold">{charts.eyeCharacteristics.type}</div>
+                      <div className="text-[10px] text-gray-400">{charts.eyeCharacteristics.personality}</div>
+                  </div>
+
+                  {/* Chart 5: Jaw */}
+                  <div className="bg-gray-900/60 p-3 rounded border border-amber-500/20">
+                      <h5 className="text-[10px] text-amber-500 uppercase tracking-widest mb-2">Jaw Discipline</h5>
+                      <div className="flex justify-between text-xs border-b border-gray-700 pb-1 mb-1">
+                          <span>Saturn</span> <span className="text-blue-300 font-bold">{charts.jawAnalysis.saturn}</span>
+                      </div>
+                      <div className="text-[10px] text-gray-400">{charts.jawAnalysis.approach}</div>
+                  </div>
+
+                  {/* Chart 6: Symmetry */}
+                  <div className="bg-gray-900/60 p-3 rounded border border-amber-500/20 col-span-1 md:col-span-2 flex justify-between items-center">
+                      <div>
+                          <h5 className="text-[10px] text-amber-500 uppercase tracking-widest">Karmic Symmetry</h5>
+                          <span className="text-xs text-white block">{charts.symmetryHealth.karmic} Balance</span>
+                      </div>
+                      <div className="text-right">
+                          <span className="text-xs text-green-400 font-bold block">{charts.symmetryHealth.health}</span>
+                      </div>
+                  </div>
+              </div>
+          </div>
+      );
   };
 
   return (
@@ -244,23 +404,29 @@ const FaceReading: React.FC = () => {
                 {isLoading && (
                     <ProgressBar 
                         progress={progress} 
-                        message="Reading Facial Features..." 
+                        message="Mapping Facial Landmarks..." 
                         estimatedTime="Approx. 10 seconds"
                     />
                 )}
                 
                 {error && <p className="text-red-400">{error}</p>}
                 
-                {reading && !isLoading && (
+                {analysisData && !isLoading && (
                    <div className="space-y-4 text-amber-100 w-full">
+                        {/* Render New Vedic Dashboard (Free Preview) */}
+                        {renderVedicDashboard()}
+
                         {!isPaid ? (
                             <>
-                                <div className="relative text-amber-100 leading-relaxed font-lora text-lg italic bg-black/40 p-6 rounded-lg border border-amber-500/20 shadow-inner">
-                                    <span className="absolute top-2 left-2 text-4xl text-amber-500/20 font-serif">“</span>
-                                    {reading.replace(/#/g, '').replace(/\*\*/g, '')}
-                                    <span className="absolute bottom-[-10px] right-4 text-4xl text-amber-500/20 font-serif">”</span>
+                                <div className="mt-6 bg-black/40 p-5 rounded-lg border border-amber-500/20 shadow-inner">
+                                    <div className="flex items-center gap-2 mb-3 pb-2 border-b border-amber-500/20">
+                                        <span className="text-xl">🕉️</span>
+                                        <h4 className="text-amber-300 font-cinzel font-bold text-sm">Vedic Insight Summary</h4>
+                                    </div>
+                                    {renderStructuredText(reading)}
                                 </div>
-                                <div className="pt-4 border-t border-amber-500/20 flex flex-col gap-2">
+
+                                <div className="pt-4 border-t border-amber-500/20 flex flex-col gap-2 mt-4">
                                    <Button onClick={handleReadMore} className="w-full bg-gradient-to-r from-amber-600 to-maroon-700 border-amber-400 shadow-[0_0_20px_rgba(251,191,36,0.4)]">
                                        {t('readMore')}
                                    </Button>
