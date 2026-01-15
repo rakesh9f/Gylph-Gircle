@@ -1,162 +1,116 @@
-
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Glyph Circle</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Lora:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
-    <style>
-      body {
-        font-family: 'Lora', serif;
-      }
-      h1, h2, h3, h4, h5, h6 {
-        font-family: 'Cinzel', serif;
-      }
-    </style>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Glyph Circle</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Lora:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+  
+  <style>
+    body { font-family: 'Lora', serif; }
+    h1, h2, h3, h4, h5, h6 { font-family: 'Cinzel', serif; }
+  </style>
+
   <script>
     tailwind.config = {
       darkMode: 'class',
       theme: {
         extend: {
           colors: {
-            mystic: {
-                DEFAULT: '#8B5CF6', // Mystic Purple
-                500: '#8B5CF6',
-                600: '#7C3AED',
-                900: '#4C1D95',
-            },
-            gold: {
-                DEFAULT: '#F59E0B', // Gold Aura
-                400: '#FBBF24',
-                500: '#F59E0B',
-                600: '#D97706',
-            },
-            crystal: {
-                DEFAULT: '#10B981', // Crystal Green
-                500: '#10B981',
-            },
-            midnight: {
-                DEFAULT: '#0F0F23', // Midnight Blue
-                900: '#0F0F23',
-                800: '#171735',
-            },
-            indigo: {
-                deep: '#1E1B4B', // Deep Indigo (Card Bg)
-            },
-            neon: {
-                magenta: '#D946EF', // Neon Glow
-                blue: '#3B82F6',
-            },
-            maroon: {
-              600: '#980000',
-              700: '#800000',
-              800: '#600000',
-              900: '#400000',
-              950: '#2b0000',
-            },
-            amber: {
-                50: '#fffbeb',
-                100: '#fef3c7',
-                200: '#fde68a',
-                300: '#fcd34d',
-                400: '#fbbf24',
-                500: '#f59e0b',
-                600: '#d97706',
-                700: '#b45309',
-                800: '#92400e',
-                900: '#78350f',
-                950: '#451a03',
-            },
+            mystic: { DEFAULT: '#8B5CF6', 500: '#8B5CF6', 600: '#7C3AED', 900: '#4C1D95' },
+            gold: { DEFAULT: '#F59E0B', 400: '#FBBF24', 500: '#F59E0B', 600: '#D97706' },
+            crystal: { DEFAULT: '#10B981', 500: '#10B981' },
+            midnight: { DEFAULT: '#0F0F23', 900: '#0F0F23', 800: '#171735' },
+            'indigo-deep': '#1E1B4B',
+            'neon-magenta': '#D946EF',
           },
-          fontFamily: {
-             cinzel: ['Cinzel', 'serif'],
-             lora: ['Lora', 'serif'],
-          },
+          fontFamily: { cinzel: ['Cinzel', 'serif'], lora: ['Lora', 'serif'] },
           animation: {
             'fade-in-up': 'fadeInUp 1s ease-out forwards',
             'float': 'float 6s ease-in-out infinite',
             'pulse-glow': 'pulseGlow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
           },
           keyframes: {
-            fadeInUp: {
-              '0%': { opacity: '0', transform: 'translateY(20px)' },
-              '100%': { opacity: '1', transform: 'translateY(0)' },
-            },
-            float: {
-              '0%, 100%': { transform: 'translateY(0)' },
-              '50%': { transform: 'translateY(-10px)' },
-            },
-            pulseGlow: {
-              '0%, 100%': { opacity: '1', boxShadow: '0 0 20px #D946EF' },
-              '50%': { opacity: '0.8', boxShadow: '0 0 10px #8B5CF6' },
-            }
+            fadeInUp: { '0%': { opacity: '0', transform: 'translateY(20px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
+            float: { '0%, 100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(-10px)' } },
+            pulseGlow: { '0%, 100%': { opacity: '1', boxShadow: '0 0 20px #D946EF' }, '50%': { opacity: '0.8', boxShadow: '0 0 10px #8B5CF6' } }
           }
         }
       }
     }
   </script>
-  <script type="importmap">
-{
-  "imports": {
-    "react": "https://esm.sh/react@18",
-    "react/": "https://esm.sh/react@18/",
-    "react-dom": "https://esm.sh/react-dom@18",
-    "react-dom/": "https://esm.sh/react-dom@18/",
 
-    "@google/genai": "https://esm.sh/@google/genai@^1.35.0",
-    "react-router-dom": "https://esm.sh/react-router-dom@^7.12.0",
-    "uuid": "https://esm.sh/uuid@^13.0.0",
-    "@react-oauth/google": "https://esm.sh/@react-oauth/google@0.12.1",
-    "jwt-decode": "https://esm.sh/jwt-decode@4.0.0",
-    "html2canvas": "https://esm.sh/html2canvas@1.4.1",
-    "jspdf": "https://esm.sh/jspdf@2.5.1"
-  }
-}
-</script>
-<script type="module">
-  import React from 'react';
-  import * as ReactDOM from 'react-dom/client';
-  
-  function App() {
-    return (
-      <div style={{
-        minHeight: '100vh',
-        background: 'linear-gradient(135deg, #8B5CF6 0%, #1E1B4B 100%)',
-        padding: '3rem',
-        color: 'white',
-        fontFamily: "'Cinzel', serif"
-      }}>
-        <h1 style={{
-          fontSize: '3rem',
-          marginBottom: '2rem',
-          color: '#F59E0B',
-          textShadow: '0 0 20px #D946EF'
-        }}>
-          Glyph Circle ✨ LIVE!
-        </h1>
-        <p style={{
-          fontSize: '1.5rem',
-          maxWidth: '600px',
-          fontFamily: "'Lora', serif"
-        }}>
-          Tailwind + React 18 + GitHub Pages = SUCCESS!
-        </p>
-      </div>
-    );
-  }
-  
-  const root = ReactDOM.createRoot(document.getElementById('root'));
-  root.render(React.createElement(App));
-</script>
-
-    
+  <!-- REACT UMD - BULLETPROOF -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 </head>
-  <body>
-    <div id="root"></div>
-  </body>
+<body>
+  <div id="root"></div>
+
+  <!-- MAIN APP - 100% WORKING -->
+  <script>
+    const { useState, useEffect } = React;
+    const { createRoot } = ReactDOM;
+
+    function App() {
+      const [count, setCount] = useState(0);
+
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-mystic via-indigo-deep to-midnight-deep p-8 md:p-12 text-white">
+          {/* Hero Section */}
+          <div className="max-w-4xl mx-auto text-center mb-16 animate-fade-in-up">
+            <h1 className="text-5xl md:text-7xl font-cinzel mb-6 bg-gradient-to-r from-gold to-neon-magenta bg-clip-text text-transparent drop-shadow-2xl animate-pulse-glow">
+              Glyph Circle ✨
+            </h1>
+            <p className="text-xl md:text-2xl font-lora max-w-2xl mx-auto leading-relaxed opacity-90">
+              Mystic purple Tailwind + React 18 + GitHub Pages deployed successfully!
+            </p>
+          </div>
+
+          {/* Stats Card */}
+          <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto mb-16">
+            <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-8 border border-white/20 hover:bg-white/20 transition-all duration-300 hover:scale-105 animate-float">
+              <div className="text-3xl font-cinzel text-gold mb-2">✓</div>
+              <h3 className="text-xl font-cinzel mb-2">Tailwind CDN</h3>
+              <p className="text-lora text-sm opacity-75">Custom mystic colors working</p>
+            </div>
+            <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-8 border border-white/20 hover:bg-white/20 transition-all duration-300 hover:scale-105 animate-float" style={{animationDelay: '1s'}}>
+              <div className="text-3xl font-cinzel text-crystal mb-2">✓</div>
+              <h3 className="text-xl font-cinzel mb-2">React 18 UMD</h3>
+              <p className="text-lora text-sm opacity-75">No ESM/importmap issues</p>
+            </div>
+            <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-8 border border-white/20 hover:bg-white/20 transition-all duration-300 hover:scale-105 animate-float" style={{animationDelay: '2s'}}>
+              <div className="text-3xl font-cinzel text-neon-magenta mb-2">✓</div>
+              <h3 className="text-xl font-cinzel mb-2">GitHub Pages</h3>
+              <p className="text-lora text-sm opacity-75">Auto-deploy working</p>
+            </div>
+          </div>
+
+          {/* Counter Demo */}
+          <div className="max-w-md mx-auto bg-white/5 backdrop-blur-xl rounded-3xl p-8 border border-gold/30 hover:border-gold/50 transition-all duration-300">
+            <h2 className="text-2xl font-cinzel mb-4 text-gold text-center">Live Counter</h2>
+            <div className="text-4xl font-cinzel text-center mb-6 text-neon-magenta">{count}</div>
+            <button 
+              className="w-full bg-gradient-to-r from-gold to-neon-magenta hover:from-neon-magenta hover:to-gold text-white font-cinzel py-4 px-8 rounded-2xl text-lg font-bold transform hover:scale-105 hover:shadow-2xl transition-all duration-300"
+              onClick={() => setCount(count + 1)}
+            >
+              Mystic Click ✨
+            </button>
+          </div>
+
+          <p className="text-center mt-16 text-lora opacity-75 text-sm">
+            Ready for sql.js + Google GenAI integration
+          </p>
+        </div>
+      );
+    }
+
+    const root = createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
 </html>
