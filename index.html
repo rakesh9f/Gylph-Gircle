@@ -120,20 +120,40 @@
 </script>
 <script type="module">
   import React from 'react';
-  import { createRoot } from 'react-dom/client';
+  import * as ReactDOM from 'react-dom/client';
   
-  const root = createRoot(document.getElementById('root'));
-  root.render(
-    <div className="min-h-screen bg-gradient-to-br from-mystic to-indigo-deep p-12 text-white">
-      <h1 className="text-5xl font-cinzel mb-8 animate-pulse-glow text-gold">
-        Glyph Circle ✨ LIVE!
-      </h1>
-      <p className="text-xl font-lora max-w-2xl">
-        Mystic purple Tailwind + React 18 deployed successfully!
-      </p>
-    </div>
-  );
+  function App() {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #8B5CF6 0%, #1E1B4B 100%)',
+        padding: '3rem',
+        color: 'white',
+        fontFamily: "'Cinzel', serif"
+      }}>
+        <h1 style={{
+          fontSize: '3rem',
+          marginBottom: '2rem',
+          color: '#F59E0B',
+          textShadow: '0 0 20px #D946EF'
+        }}>
+          Glyph Circle ✨ LIVE!
+        </h1>
+        <p style={{
+          fontSize: '1.5rem',
+          maxWidth: '600px',
+          fontFamily: "'Lora', serif"
+        }}>
+          Tailwind + React 18 + GitHub Pages = SUCCESS!
+        </p>
+      </div>
+    );
+  }
+  
+  const root = ReactDOM.createRoot(document.getElementById('root'));
+  root.render(React.createElement(App));
 </script>
+
     
 </head>
   <body>
