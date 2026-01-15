@@ -1,6 +1,5 @@
 
 import { MOCK_DATABASE } from './mockDb';
-// import { securityService } from './security'; // Temporarily disabled for stability
 
 // Define Window interface for SQL.js
 declare global {
@@ -9,11 +8,72 @@ declare global {
   }
 }
 
+// --- INDEXED DB ADAPTER ---
+// Handles large binary storage efficiently
+const IDB_CONFIG = {
+  DB_NAME: 'GlyphCircleStorage',
+  STORE_NAME: 'sqlite_store',
+  KEY: 'main_db_binary_v1'
+};
+
+const idbAdapter = {
+  open: (): Promise<IDBDatabase> => {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open(IDB_CONFIG.DB_NAME, 2); // Version 2
+      
+      request.onupgradeneeded = (e: any) => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains(IDB_CONFIG.STORE_NAME)) {
+          db.createObjectStore(IDB_CONFIG.STORE_NAME);
+        }
+      };
+      
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  },
+
+  save: async (data: Uint8Array) => {
+    try {
+      const db = await idbAdapter.open();
+      return new Promise<void>((resolve, reject) => {
+        const tx = db.transaction(IDB_CONFIG.STORE_NAME, 'readwrite');
+        const store = tx.objectStore(IDB_CONFIG.STORE_NAME);
+        const req = store.put(data, IDB_CONFIG.KEY);
+        
+        req.onsuccess = () => resolve();
+        req.onerror = () => reject(req.error);
+      });
+    } catch (err) {
+      console.error("IDB Save Error:", err);
+    }
+  },
+
+  load: async (): Promise<Uint8Array | null> => {
+    try {
+      const db = await idbAdapter.open();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(IDB_CONFIG.STORE_NAME, 'readonly');
+        const store = tx.objectStore(IDB_CONFIG.STORE_NAME);
+        const req = store.get(IDB_CONFIG.KEY);
+        
+        req.onsuccess = () => resolve(req.result || null);
+        req.onerror = () => reject(req.error);
+      });
+    } catch (err) {
+      console.error("IDB Load Error:", err);
+      return null;
+    }
+  }
+};
+
 class SqliteService {
   private db: any = null;
   private SQL: any = null;
   private isReady: boolean = false;
-  private readonly DB_NAME = 'glyph_circle_prod_v4.sqlite'; // Updated version
+  
+  // Legacy LocalStorage Key for Migration
+  private readonly LEGACY_KEY = 'glyph_circle_prod_v4.sqlite';
 
   constructor() {
     this.init();
@@ -33,26 +93,35 @@ class SqliteService {
         locateFile: (file: string) => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${file}`
       });
 
-      // 1. Load Database from Storage
-      const savedDb = localStorage.getItem(this.DB_NAME);
+      // 1. Try Load from IndexedDB (Primary)
+      let binaryDb = await idbAdapter.load();
       
-      if (savedDb) {
+      // 2. Migration: If no IDB, check LocalStorage
+      if (!binaryDb) {
+        const legacyData = localStorage.getItem(this.LEGACY_KEY);
+        if (legacyData) {
+            console.log("📦 Migrating data from LocalStorage to IndexedDB...");
+            try {
+                binaryDb = this.base64ToUint8Array(legacyData);
+            } catch (e) {
+                console.error("Migration failed, data corrupt", e);
+            }
+        }
+      }
+
+      if (binaryDb) {
         try {
-            // Direct load for stability
-            const binaryArray = this.base64ToUint8Array(savedDb);
-            this.db = new this.SQL.Database(binaryArray);
-            console.log("📂 SQLite: Loaded from Storage.");
+            this.db = new this.SQL.Database(binaryDb);
+            console.log("📂 SQLite: Loaded from Persistence Layer.");
         } catch (e) {
-            console.error("❌ SQLite: Load Fail. Resetting DB...", e);
-            // Backup the corrupted string just in case
-            localStorage.setItem(this.DB_NAME + '_corrupt_backup', savedDb);
-            
+            console.error("❌ SQLite: Corrupt DB. Resetting...", e);
             this.db = new this.SQL.Database();
             this.autoMigrateFromMock();
         }
       } else {
+        // 3. New DB
         this.db = new this.SQL.Database();
-        console.log("🆕 SQLite: Created new instance.");
+        console.log("🆕 SQLite: Created new instance (Fresh).");
         this.autoMigrateFromMock();
       }
 
@@ -64,7 +133,6 @@ class SqliteService {
 
   // --- AUTO-SCHEMA DETECTION & MIGRATION ---
   private autoMigrateFromMock() {
-    // Runtime Table Creation Logic
     Object.keys(MOCK_DATABASE).forEach(tableName => {
       const records = MOCK_DATABASE[tableName];
       if (!records || records.length === 0) return;
@@ -91,10 +159,9 @@ class SqliteService {
           const createSql = `CREATE TABLE IF NOT EXISTS ${tableName} (${columnDefinitions.join(', ')});`;
           this.db.run(createSql);
           
-          // Only insert if table is empty to avoid duplicates on migration re-run
           const countRes = this.db.exec(`SELECT count(*) as count FROM ${tableName}`);
           if (countRes.length > 0 && countRes[0].values[0][0] > 0) {
-              return; // Table has data, skip seeding
+              return; 
           }
 
           const placeholders = columns.map(() => '?').join(', ');
@@ -213,7 +280,6 @@ class SqliteService {
         });
         return exportData;
     } catch(e) {
-        console.error("Export Failed", e);
         return {};
     }
   }
@@ -221,30 +287,22 @@ class SqliteService {
   importFromJson(jsonData: Record<string, any[]>) {
     if (!this.db) return;
     try {
-        // We use a transaction for atomic restore
-        // Note: sql.js transactions might need explicit handling if not in worker
-        // but we'll do best effort.
-        
         Object.keys(jsonData).forEach(tableName => {
             const rows = jsonData[tableName];
             if (!Array.isArray(rows) || rows.length === 0) return;
 
-            // 1. Detect Schema from first row of backup
             const sample = rows[0];
             const columns = Object.keys(sample);
             const columnDefs = columns.map(k => {
-                 // Simple type inference
                  const val = sample[k];
                  let type = 'TEXT';
                  if (typeof val === 'number') type = Number.isInteger(val) ? 'INTEGER' : 'REAL';
                  return k === 'id' ? `${k} ${type} PRIMARY KEY` : `${k} ${type}`;
             });
 
-            // 2. Drop and Recreate Table
             this.db.run(`DROP TABLE IF EXISTS ${tableName}`);
             this.db.run(`CREATE TABLE ${tableName} (${columnDefs.join(', ')})`);
             
-            // 3. Insert Data
             const placeholders = columns.map(() => '?').join(', ');
             const insertSql = `INSERT INTO ${tableName} (${columns.join(', ')}) VALUES (${placeholders})`;
             const stmt = this.db.prepare(insertSql);
@@ -263,7 +321,6 @@ class SqliteService {
         });
 
         this.saveToStorage();
-        console.log("✅ Database Restored from JSON");
     } catch (e) {
         console.error("Import failed", e);
         throw new Error("Failed to restore database from file.");
@@ -271,36 +328,23 @@ class SqliteService {
   }
 
   // --- PERSISTENCE ---
-  private saveToStorage() {
+  private async saveToStorage() {
     if (this.db) {
         try {
-            // Attempt to compact the database before saving to save space
-            // this.db.run("VACUUM"); 
-            
+            // Export raw binary (Uint8Array)
             const data = this.db.export();
-            const base64 = this.uint8ArrayToBase64(data);
             
-            // Check approximate size (Base64 is ~1.33x binary size)
-            // 5MB limit means ~3.7MB binary limit
-            if (base64.length > 4500000) {
-                console.warn("⚠️ Database size approaching LocalStorage limit!");
+            // Save to IndexedDB (No size limit issues like LocalStorage)
+            await idbAdapter.save(data);
+            
+            // Clean up legacy storage to free space if migration was successful
+            if (localStorage.getItem(this.LEGACY_KEY)) {
+                localStorage.removeItem(this.LEGACY_KEY);
             }
-
-            localStorage.setItem(this.DB_NAME, base64);
-        } catch (e: any) {
-            console.error("❌ CRITICAL: Failed to save Database to LocalStorage", e);
-            if (e.name === 'QuotaExceededError') {
-                alert("Storage Full! Your changes cannot be saved. Please clear some data or use Backup/Restore.");
-            }
+        } catch (e) {
+            console.error("CRITICAL: Failed to save DB", e);
         }
     }
-  }
-
-  private uint8ArrayToBase64(u8: Uint8Array): string {
-    let binary = '';
-    const len = u8.byteLength;
-    for (let i = 0; i < len; i++) { binary += String.fromCharCode(u8[i]); }
-    return window.btoa(binary);
   }
 
   private base64ToUint8Array(base64: string): Uint8Array {
