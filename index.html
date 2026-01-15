@@ -1,13 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Glyph Circle</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Lora:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
   
   <style>
@@ -17,100 +14,101 @@
 
   <script>
     tailwind.config = {
-      darkMode: 'class',
       theme: {
         extend: {
           colors: {
-            mystic: { DEFAULT: '#8B5CF6', 500: '#8B5CF6', 600: '#7C3AED', 900: '#4C1D95' },
-            gold: { DEFAULT: '#F59E0B', 400: '#FBBF24', 500: '#F59E0B', 600: '#D97706' },
-            crystal: { DEFAULT: '#10B981', 500: '#10B981' },
-            midnight: { DEFAULT: '#0F0F23', 900: '#0F0F23', 800: '#171735' },
-            'indigo-deep': '#1E1B4B',
+            mystic: { DEFAULT: '#8B5CF6', 500: '#8B5CF6', 600: '#7C3AED' },
+            gold: { DEFAULT: '#F59E0B', 400: '#FBBF24', 500: '#F59E0B' },
             'neon-magenta': '#D946EF',
+            'indigo-deep': '#1E1B4B'
           },
           fontFamily: { cinzel: ['Cinzel', 'serif'], lora: ['Lora', 'serif'] },
           animation: {
             'fade-in-up': 'fadeInUp 1s ease-out forwards',
-            'float': 'float 6s ease-in-out infinite',
-            'pulse-glow': 'pulseGlow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            'pulse-glow': 'pulseGlow 2s infinite'
           },
           keyframes: {
-            fadeInUp: { '0%': { opacity: '0', transform: 'translateY(20px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
-            float: { '0%, 100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(-10px)' } },
-            pulseGlow: { '0%, 100%': { opacity: '1', boxShadow: '0 0 20px #D946EF' }, '50%': { opacity: '0.8', boxShadow: '0 0 10px #8B5CF6' } }
+            fadeInUp: {
+              '0%': { opacity: '0', transform: 'translateY(30px)' },
+              '100%': { opacity: '1', transform: 'translateY(0)' }
+            },
+            pulseGlow: {
+              '0%, 100%': { boxShadow: '0 0 20px #D946EF' },
+              '50%': { boxShadow: '0 0 40px #8B5CF6' }
+            }
           }
         }
       }
     }
   </script>
-
-  <!-- REACT UMD - BULLETPROOF -->
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 </head>
-<body>
-  <div id="root"></div>
+<body class="bg-gradient-to-br from-mystic via-indigo-deep to-black min-h-screen text-white overflow-x-hidden">
 
-  <!-- MAIN APP - 100% WORKING -->
-  <script>
-    const { useState, useEffect } = React;
-    const { createRoot } = ReactDOM;
-
-    function App() {
-      const [count, setCount] = useState(0);
-
-      return (
-        <div className="min-h-screen bg-gradient-to-br from-mystic via-indigo-deep to-midnight-deep p-8 md:p-12 text-white">
-          {/* Hero Section */}
-          <div className="max-w-4xl mx-auto text-center mb-16 animate-fade-in-up">
-            <h1 className="text-5xl md:text-7xl font-cinzel mb-6 bg-gradient-to-r from-gold to-neon-magenta bg-clip-text text-transparent drop-shadow-2xl animate-pulse-glow">
-              Glyph Circle ✨
-            </h1>
-            <p className="text-xl md:text-2xl font-lora max-w-2xl mx-auto leading-relaxed opacity-90">
-              Mystic purple Tailwind + React 18 + GitHub Pages deployed successfully!
-            </p>
+  <!-- Hero -->
+  <section class="min-h-screen flex items-center justify-center p-4">
+    <div class="text-center max-w-4xl mx-auto animate-fade-in-up">
+      <h1 class="text-5xl md:text-7xl font-cinzel mb-8 bg-gradient-to-r from-gold via-yellow-400 to-neon-magenta bg-clip-text text-transparent drop-shadow-2xl animate-pulse-glow">
+        Glyph Circle
+      </h1>
+      <p class="text-xl md:text-2xl font-lora max-w-2xl mx-auto leading-relaxed opacity-90 mb-12">
+        Mystic purple Tailwind masterpiece deployed on GitHub Pages
+      </p>
+      <div class="bg-white/10 backdrop-blur-xl rounded-3xl p-8 md:p-12 border border-white/20 max-w-2xl mx-auto">
+        <div class="grid md:grid-cols-3 gap-6 mb-8">
+          <div class="text-center p-6">
+            <div class="text-3xl font-cinzel text-gold mb-2">✨</div>
+            <div class="text-lg font-cinzel">Tailwind CDN</div>
+            <div class="text-sm opacity-75 font-lora">Custom colors</div>
           </div>
-
-          {/* Stats Card */}
-          <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto mb-16">
-            <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-8 border border-white/20 hover:bg-white/20 transition-all duration-300 hover:scale-105 animate-float">
-              <div className="text-3xl font-cinzel text-gold mb-2">✓</div>
-              <h3 className="text-xl font-cinzel mb-2">Tailwind CDN</h3>
-              <p className="text-lora text-sm opacity-75">Custom mystic colors working</p>
-            </div>
-            <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-8 border border-white/20 hover:bg-white/20 transition-all duration-300 hover:scale-105 animate-float" style={{animationDelay: '1s'}}>
-              <div className="text-3xl font-cinzel text-crystal mb-2">✓</div>
-              <h3 className="text-xl font-cinzel mb-2">React 18 UMD</h3>
-              <p className="text-lora text-sm opacity-75">No ESM/importmap issues</p>
-            </div>
-            <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-8 border border-white/20 hover:bg-white/20 transition-all duration-300 hover:scale-105 animate-float" style={{animationDelay: '2s'}}>
-              <div className="text-3xl font-cinzel text-neon-magenta mb-2">✓</div>
-              <h3 className="text-xl font-cinzel mb-2">GitHub Pages</h3>
-              <p className="text-lora text-sm opacity-75">Auto-deploy working</p>
-            </div>
+          <div class="text-center p-6">
+            <div class="text-3xl font-cinzel text-neon-magenta mb-2">⚡</div>
+            <div class="text-lg font-cinzel">GitHub Pages</div>
+            <div class="text-sm opacity-75 font-lora">Auto-deploy</div>
           </div>
-
-          {/* Counter Demo */}
-          <div className="max-w-md mx-auto bg-white/5 backdrop-blur-xl rounded-3xl p-8 border border-gold/30 hover:border-gold/50 transition-all duration-300">
-            <h2 className="text-2xl font-cinzel mb-4 text-gold text-center">Live Counter</h2>
-            <div className="text-4xl font-cinzel text-center mb-6 text-neon-magenta">{count}</div>
-            <button 
-              className="w-full bg-gradient-to-r from-gold to-neon-magenta hover:from-neon-magenta hover:to-gold text-white font-cinzel py-4 px-8 rounded-2xl text-lg font-bold transform hover:scale-105 hover:shadow-2xl transition-all duration-300"
-              onClick={() => setCount(count + 1)}
-            >
-              Mystic Click ✨
-            </button>
+          <div class="text-center p-6">
+            <div class="text-3xl font-cinzel text-emerald-400 mb-2">🔮</div>
+            <div class="text-lg font-cinzel">Ready For</div>
+            <div class="text-sm opacity-75 font-lora">sql.js + GenAI</div>
           </div>
-
-          <p className="text-center mt-16 text-lora opacity-75 text-sm">
-            Ready for sql.js + Google GenAI integration
-          </p>
         </div>
-      );
-    }
+      </div>
+    </div>
+  </section>
 
-    const root = createRoot(document.getElementById('root'));
-    root.render(<App />);
-  </script>
+  <!-- Features -->
+  <section class="py-32 bg-white/5 backdrop-blur-xl">
+    <div class="max-w-6xl mx-auto px-4">
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div class="group bg-white/5 backdrop-blur-xl rounded-3xl p-10 border border-white/10 hover:bg-white/10 hover:scale-105 transition-all duration-500 hover:border-gold/50">
+          <div class="w-16 h-16 bg-gradient-to-r from-gold to-neon-magenta rounded-2xl flex items-center justify-center mb-6 group-hover:rotate-12 transition-transform duration-500">
+            <span class="text-2xl font-cinzel">✨</span>
+          </div>
+          <h3 class="text-2xl font-cinzel mb-4 text-gold group-hover:text-neon-magenta transition-colors">Mystic Design</h3>
+          <p class="font-lora opacity-80 leading-relaxed">Custom Tailwind colors with glassmorphism effects and smooth animations</p>
+        </div>
+        
+        <div class="group bg-white/5 backdrop-blur-xl rounded-3xl p-10 border border-white/10 hover:bg-white/10 hover:scale-105 transition-all duration-500 hover:border-gold/50">
+          <div class="w-16 h-16 bg-gradient-to-r from-mystic to-indigo-deep rounded-2xl flex items-center justify-center mb-6 group-hover:rotate-12 transition-transform duration-500">
+            <span class="text-2xl font-cinzel">⚡</span>
+          </div>
+          <h3 class="text-2xl font-cinzel mb-4 text-gold group-hover:text-neon-magenta transition-colors">Live Deploy</h3>
+          <p class="font-lora opacity-80 leading-relaxed">GitHub Pages auto-deploys every commit - zero build step required</p>
+        </div>
+        
+        <div class="group bg-white/5 backdrop-blur-xl rounded-3xl p-10 border border-white/10 hover:bg-white/10 hover:scale-105 transition-all duration-500 hover:border-gold/50">
+          <div class="w-16 h-16 bg-gradient-to-r from-emerald-400 to-teal-400 rounded-2xl flex items-center justify-center mb-6 group-hover:rotate-12 transition-transform duration-500">
+            <span class="text-2xl font-cinzel">🔮</span>
+          </div>
+          <h3 class="text-2xl font-cinzel mb-4 text-gold group-hover:text-neon-magenta transition-colors">Future Ready</h3>
+          <p class="font-lora opacity-80 leading-relaxed">sql.js, Google GenAI, and your full app stack ready to integrate</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="py-12 text-center border-t border-white/10">
+    <p class="font-lora opacity-75">Glyph Circle © 2026 - Live on GitHub Pages</p>
+  </footer>
+
 </body>
 </html>
