@@ -118,6 +118,23 @@
   }
 }
 </script>
+<script type="module">
+  import React from 'react';
+  import { createRoot } from 'react-dom/client';
+  
+  const root = createRoot(document.getElementById('root'));
+  root.render(
+    <div className="min-h-screen bg-gradient-to-br from-mystic to-indigo-deep p-12 text-white">
+      <h1 className="text-5xl font-cinzel mb-8 animate-pulse-glow text-gold">
+        Glyph Circle ✨ LIVE!
+      </h1>
+      <p className="text-xl font-lora max-w-2xl">
+        Mystic purple Tailwind + React 18 deployed successfully!
+      </p>
+    </div>
+  );
+</script>
+    
 </head>
   <body>
     <div id="root"></div>
