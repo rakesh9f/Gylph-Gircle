@@ -11,6 +11,8 @@ import TarotCard from './TarotCard';
 import FullReport from './FullReport';
 import { useAuth } from '../context/AuthContext';
 import { ACTION_POINTS } from '../services/gamificationConfig';
+import { useDb } from '../hooks/useDb';
+import { cloudManager } from '../services/cloudManager';
 
 // --- DECK GENERATION LOGIC (78 Cards) ---
 const SUITS = ['Wands', 'Cups', 'Swords', 'Pentacles'];
@@ -131,6 +133,7 @@ const Tarot: React.FC = () => {
   const { t, language } = useTranslation();
   const { openPayment } = usePayment();
   const { user, awardKarma } = useAuth();
+  const { db } = useDb();
 
   const ADMIN_EMAILS = ['master@gylphcircle.com', 'admin@gylphcircle.com'];
   const isAdmin = user && ADMIN_EMAILS.includes(user.email);
@@ -201,8 +204,9 @@ const Tarot: React.FC = () => {
   const handleReadMore = () => openPayment(() => setIsPaid(true));
   const handleCloseModal = () => { setSelectedCard(null); setReading(''); setIsPaid(false); };
 
-  // Image URL for report
-  const reportImage = "https://images.unsplash.com/photo-1630335017257-23b092301983?q=80&w=800";
+  // Fetch from DB or fallback
+  const tarotService = db.services?.find((s: any) => s.id === 'tarot');
+  const reportImage = cloudManager.resolveImage(tarotService?.image) || "https://images.unsplash.com/photo-1505537528343-4dc9b89823f6?q=80&w=800";
 
   return (
     <>

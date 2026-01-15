@@ -1,10 +1,10 @@
 
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import Card from './shared/Card';
 import Button from './shared/Button';
-
-// Keys used in localStorage for production data
-const DB_KEY = 'gylph_circle_prod_db_v2';
+import { sqliteService } from '../services/sqliteService';
+import { useDb } from '../hooks/useDb';
 
 const BackupManager: React.FC = () => {
   const [lastBackup, setLastBackup] = useState<string | null>(
@@ -12,25 +12,28 @@ const BackupManager: React.FC = () => {
   );
   const [isRestoring, setIsRestoring] = useState(false);
   const [restoreStatus, setRestoreStatus] = useState('');
+  const { refresh } = useDb();
 
-  // 1. BACKUP: Download JSON
+  // 1. BACKUP: Download JSON from SQLite
   const handleBackup = () => {
     try {
-      const data = localStorage.getItem(DB_KEY);
-      if (!data) {
-        alert("No production data found to backup.");
+      const data = sqliteService.exportAllData();
+      const jsonStr = JSON.stringify(data, null, 2);
+      
+      if (jsonStr === '{}') {
+        alert("Database is empty or failed to export.");
         return;
       }
 
       // Create blob
-      const blob = new Blob([data], { type: 'application/json' });
+      const blob = new Blob([jsonStr], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       
       // Create link and click
       const a = document.createElement('a');
       a.href = url;
       const date = new Date().toISOString().split('T')[0];
-      a.download = `glyph-backup-${date}.json`;
+      a.download = `glyph-circle-backup-${date}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -47,28 +50,28 @@ const BackupManager: React.FC = () => {
     }
   };
 
-  // 2. CSV EXPORT
-  const handleExportCSV = (type: 'users' | 'transactions') => {
+  // 2. CSV EXPORT (Table Specific)
+  const handleExportCSV = (tableName: string) => {
       try {
-          const raw = localStorage.getItem(DB_KEY);
-          if (!raw) return;
-          const db = JSON.parse(raw);
-          const items = db[type] || [];
-
-          if (items.length === 0) {
-              alert(`No ${type} found to export.`);
+          const data = sqliteService.getAll(tableName);
+          if (data.length === 0) {
+              alert(`No records in ${tableName} to export.`);
               return;
           }
 
-          const headers = Object.keys(items[0]).join(',');
-          const rows = items.map((obj: any) => Object.values(obj).map(v => `"${v}"`).join(','));
+          const headers = Object.keys(data[0]).join(',');
+          const rows = data.map((obj: any) => 
+            Object.values(obj).map(v => 
+                typeof v === 'object' ? `"${JSON.stringify(v).replace(/"/g, '""')}"` : `"${v}"`
+            ).join(',')
+          );
           const csvContent = [headers, ...rows].join('\n');
 
           const blob = new Blob([csvContent], { type: 'text/csv' });
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
-          a.download = `glyph-${type}-${new Date().toISOString().split('T')[0]}.csv`;
+          a.download = `glyph-${tableName}-${new Date().toISOString().split('T')[0]}.csv`;
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);
@@ -78,32 +81,46 @@ const BackupManager: React.FC = () => {
       }
   };
 
-  // 3. RESTORE: Import JSON
+  // 3. RESTORE: Import JSON to SQLite
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
       const file = event.target.files?.[0];
       if (!file) return;
+
+      if (!window.confirm("WARNING: This will OVERWRITE your current database with the backup file. Are you sure?")) {
+          event.target.value = ''; // Reset input
+          return;
+      }
 
       setIsRestoring(true);
       setRestoreStatus('Reading file...');
 
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
           try {
               const content = e.target?.result as string;
-              // Validation check
               const parsed = JSON.parse(content);
-              if (!parsed.users || !parsed.readings) {
-                  throw new Error("Invalid backup file format");
+              
+              // Basic validation: check if it looks like a DB dump (keys should be table names, values arrays)
+              const tables = Object.keys(parsed);
+              if (tables.length === 0 || !Array.isArray(parsed[tables[0]])) {
+                  throw new Error("Invalid backup format");
               }
 
-              // Perform Restore
-              localStorage.setItem(DB_KEY, content);
+              setRestoreStatus('Restoring Database...');
+              
+              // Perform Restore via Service
+              await new Promise(r => setTimeout(r, 500)); // UI Breath
+              sqliteService.importFromJson(parsed);
+              
+              // Refresh Context
+              refresh();
+
               setRestoreStatus('Success! Reloading...');
               setTimeout(() => window.location.reload(), 1500);
 
-          } catch (err) {
+          } catch (err: any) {
               setRestoreStatus('Error: Invalid File');
-              alert("Restore Failed: Invalid JSON format.");
+              alert("Restore Failed: " + err.message);
               setIsRestoring(false);
           }
       };
@@ -111,62 +128,85 @@ const BackupManager: React.FC = () => {
   };
 
   return (
-    <Card className="bg-gray-900 border-gray-800 h-full">
-        <div className="p-6 flex flex-col h-full">
-            <h3 className="text-lg font-bold text-gray-300 mb-4 border-b border-gray-800 pb-2 flex items-center gap-2">
-                <span>💾</span> Backup & Recovery
-            </h3>
-
-            <div className="flex-grow space-y-6">
-                {/* Status */}
-                <div className="bg-black/40 p-3 rounded border border-gray-700 text-xs">
-                    <p className="text-gray-500 mb-1">LAST BACKUP</p>
-                    <p className="text-green-400 font-mono">{lastBackup || 'Never'}</p>
+    <div className="min-h-screen bg-gray-900 p-6 font-mono text-gray-300">
+        <div className="max-w-4xl mx-auto">
+            <div className="flex justify-between items-center mb-8 border-b border-gray-700 pb-4">
+                <div>
+                    <h1 className="text-3xl font-bold text-white mb-2">Disaster Recovery</h1>
+                    <p className="text-sm text-gray-500">Backup and Restore System Database</p>
                 </div>
+                <Link to="/admin/dashboard" className="text-blue-400 hover:text-blue-300">&larr; Dashboard</Link>
+            </div>
 
-                {/* Actions */}
-                <div className="space-y-3">
-                    <Button onClick={handleBackup} className="w-full bg-blue-900/30 hover:bg-blue-800/50 border-blue-500/50 text-blue-300 text-sm">
-                        ⬇️ Download Full Backup
-                    </Button>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                
+                {/* BACKUP CARD */}
+                <Card className="bg-gray-800 border-gray-700 p-6">
+                    <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                        <span>⬇️</span> Export Data
+                    </h3>
+                    <p className="text-sm text-gray-400 mb-6">
+                        Download a complete JSON snapshot of all database tables. Keep this file secure.
+                    </p>
                     
-                    <div className="grid grid-cols-2 gap-2">
-                        <button 
-                            onClick={() => handleExportCSV('users')}
-                            className="bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs py-2 px-1 rounded border border-gray-600"
-                        >
-                            Export Users CSV
-                        </button>
-                        <button 
-                            onClick={() => handleExportCSV('transactions')}
-                            className="bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs py-2 px-1 rounded border border-gray-600"
-                        >
-                            Export Sales CSV
-                        </button>
+                    <div className="bg-black/30 p-4 rounded border border-gray-700 text-xs mb-6">
+                        <p className="text-gray-500 mb-1 uppercase tracking-widest">Last Backup</p>
+                        <p className="text-green-400 font-mono text-base">{lastBackup || 'Never'}</p>
                     </div>
-                </div>
 
-                {/* Restore Zone */}
-                <div className="border-t border-gray-800 pt-4">
-                     <p className="text-gray-500 text-xs mb-2 uppercase">Danger Zone: Restore</p>
-                     <div className="relative">
+                    <Button onClick={handleBackup} className="w-full bg-blue-600 hover:bg-blue-500 border-none">
+                        Download Full Backup (.json)
+                    </Button>
+
+                    <div className="mt-6 pt-6 border-t border-gray-700">
+                        <p className="text-xs text-gray-500 mb-3 uppercase tracking-widest">Quick CSV Exports</p>
+                        <div className="flex gap-2">
+                            <button onClick={() => handleExportCSV('users')} className="bg-gray-700 hover:bg-gray-600 text-white px-3 py-2 rounded text-xs">Users</button>
+                            <button onClick={() => handleExportCSV('store_orders')} className="bg-gray-700 hover:bg-gray-600 text-white px-3 py-2 rounded text-xs">Orders</button>
+                            <button onClick={() => handleExportCSV('transactions')} className="bg-gray-700 hover:bg-gray-600 text-white px-3 py-2 rounded text-xs">Transactions</button>
+                        </div>
+                    </div>
+                </Card>
+
+                {/* RESTORE CARD */}
+                <Card className="bg-gray-800 border-red-900/30 p-6 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-20 h-20 bg-red-500/10 rounded-full blur-2xl -z-10"></div>
+                    
+                    <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                        <span>⬆️</span> Restore Data
+                    </h3>
+                    <p className="text-sm text-gray-400 mb-6">
+                        Upload a previously generated backup JSON file. <strong className="text-red-400">This will replace all current data.</strong>
+                    </p>
+
+                    <div className="border-2 border-dashed border-gray-600 rounded-xl p-8 text-center hover:bg-gray-700/30 transition-colors relative">
                         <input 
                             type="file" 
                             accept=".json"
                             onChange={handleFileSelect}
-                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                            disabled={isRestoring}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
                         />
-                        <button className="w-full bg-red-900/20 hover:bg-red-900/40 text-red-400 border border-red-900/50 rounded py-2 text-sm dashed">
-                            {isRestoring ? restoreStatus : '⬆️ Upload Backup File'}
-                        </button>
-                     </div>
-                     <p className="text-[10px] text-gray-600 mt-2 text-center">
-                         Overwrites current database immediately.
-                     </p>
-                </div>
+                        <div className="text-4xl mb-2">📂</div>
+                        <p className="text-sm font-bold text-gray-300">
+                            {isRestoring ? restoreStatus : 'Click to Upload Backup File'}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">.json files only</p>
+                    </div>
+
+                    {isRestoring && (
+                        <div className="mt-4">
+                            <div className="w-full bg-gray-900 rounded-full h-2">
+                                <div className="bg-green-500 h-2 rounded-full animate-pulse w-full"></div>
+                            </div>
+                            <p className="text-center text-xs text-green-400 mt-2 font-mono">{restoreStatus}</p>
+                        </div>
+                    )}
+                </Card>
+
             </div>
         </div>
-    </Card>
+    </div>
   );
 };
 

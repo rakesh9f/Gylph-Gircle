@@ -13,6 +13,10 @@ const AdminPaymentConfig: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [testStatus, setTestStatus] = useState<{ success?: boolean; message?: string }>({});
   const [loading, setLoading] = useState(false);
+  
+  // Validation State
+  const [flashError, setFlashError] = useState<string | null>(null);
+  const [isFlashing, setIsFlashing] = useState(false);
 
   useEffect(() => {
     refreshList();
@@ -27,22 +31,68 @@ const AdminPaymentConfig: React.FC = () => {
     setFormData(provider);
     setIsEditing(true);
     setTestStatus({});
+    setFlashError(null);
   };
 
   const handleCreate = () => {
     setFormData({ provider_type: 'razorpay', is_active: true, country_codes: 'GLOBAL' });
     setIsEditing(true);
     setTestStatus({});
+    setFlashError(null);
+  };
+
+  const triggerFlash = (message: string) => {
+      setFlashError(message);
+      setIsFlashing(true);
+      if (navigator.vibrate) navigator.vibrate([100, 50, 100]); // Error haptic pattern
+      
+      // Reset flash animation class after animation completes
+      setTimeout(() => setIsFlashing(false), 800);
+  };
+
+  const validateForm = (): boolean => {
+      if (!formData.name?.trim()) {
+          triggerFlash("Configuration Name is missing. Please identify this gateway.");
+          return false;
+      }
+      if (!formData.api_key?.trim()) {
+          triggerFlash("Public API Key / Client ID is required for transaction initiation.");
+          return false;
+      }
+
+      // Specific Provider Validation
+      if (formData.provider_type === 'razorpay') {
+          if (!formData.api_key.startsWith('rzp_')) {
+              triggerFlash("Invalid Razorpay Key. It must start with 'rzp_'.");
+              return false;
+          }
+          if (!formData.api_secret?.trim()) {
+              triggerFlash("Razorpay requires an API Secret to verify signatures.");
+              return false;
+          }
+      }
+
+      if (formData.provider_type === 'stripe') {
+          if (!formData.api_key.startsWith('pk_')) {
+              triggerFlash("Invalid Stripe Publishable Key. It must start with 'pk_'.");
+              return false;
+          }
+          if (!formData.api_secret?.trim()) {
+              triggerFlash("Stripe requires a Secret Key (sk_) for backend processing.");
+              return false;
+          }
+      }
+
+      return true;
   };
 
   const handleSave = () => {
-    if (!formData.name || !formData.api_key) {
-        alert("Name and API Key are required");
-        return;
-    }
+    if (!validateForm()) return;
+
     paymentManager.saveProvider(formData as any);
     setIsEditing(false);
     refreshList();
+    setFlashError(null);
   };
 
   const handleDelete = (id: string) => {
@@ -59,6 +109,8 @@ const AdminPaymentConfig: React.FC = () => {
   };
 
   const handleTestTransaction = async () => {
+    if (!validateForm()) return;
+
     setLoading(true);
     const res = await paymentManager.testTransaction(formData as PaymentProvider);
     setTestStatus(res);
@@ -115,7 +167,7 @@ const AdminPaymentConfig: React.FC = () => {
                 </div>
 
                 {/* EDITOR PANEL */}
-                <Card className="lg:col-span-2 bg-gray-800 border-gray-700 p-6">
+                <Card className={`lg:col-span-2 bg-gray-800 border-gray-700 p-6 transition-all duration-300 ${isFlashing ? 'ring-4 ring-red-500 shadow-[0_0_50px_rgba(220,38,38,0.5)] bg-red-900/10' : ''}`}>
                     {isEditing ? (
                         <div className="space-y-6">
                             <div className="flex justify-between items-center border-b border-gray-700 pb-4">
@@ -130,6 +182,17 @@ const AdminPaymentConfig: React.FC = () => {
                                 )}
                             </div>
 
+                            {/* Flash Error Banner */}
+                            {flashError && (
+                                <div className="bg-red-900/50 border border-red-500 text-red-200 px-4 py-3 rounded-lg flex items-center gap-3 animate-bounce">
+                                    <span className="text-2xl">⚠️</span>
+                                    <div>
+                                        <div className="font-bold text-sm uppercase tracking-widest">Action Required</div>
+                                        <div className="text-xs">{flashError}</div>
+                                    </div>
+                                </div>
+                            )}
+
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
                                     <label className="block text-xs uppercase text-gray-500 mb-1">Provider Type</label>
@@ -142,7 +205,7 @@ const AdminPaymentConfig: React.FC = () => {
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-xs uppercase text-gray-500 mb-1">Config Name</label>
+                                    <label className="block text-xs uppercase text-gray-500 mb-1">Config Name <span className="text-red-500">*</span></label>
                                     <input 
                                         className="w-full bg-gray-900 border border-gray-600 rounded p-3 text-white focus:border-blue-500 outline-none"
                                         placeholder="e.g. Razorpay India Prod"
@@ -152,7 +215,7 @@ const AdminPaymentConfig: React.FC = () => {
                                 </div>
 
                                 <div className="md:col-span-2">
-                                    <label className="block text-xs uppercase text-gray-500 mb-1">Public API Key (Client ID)</label>
+                                    <label className="block text-xs uppercase text-gray-500 mb-1">Public API Key (Client ID) <span className="text-red-500">*</span></label>
                                     <input 
                                         className="w-full bg-gray-900 border border-gray-600 rounded p-3 text-white focus:border-blue-500 outline-none font-mono text-sm"
                                         placeholder="rzp_test_... or pk_test_..."
@@ -181,7 +244,7 @@ const AdminPaymentConfig: React.FC = () => {
                                 </div>
 
                                 <div className="md:col-span-2">
-                                    <label className="block text-xs uppercase text-gray-500 mb-1">API Secret / Private Key</label>
+                                    <label className="block text-xs uppercase text-gray-500 mb-1">API Secret / Private Key <span className="text-red-500">*</span></label>
                                     <input 
                                         type="password"
                                         className="w-full bg-gray-900 border border-gray-600 rounded p-3 text-white focus:border-blue-500 outline-none font-mono text-sm"
@@ -216,7 +279,7 @@ const AdminPaymentConfig: React.FC = () => {
                                     Save Provider
                                 </Button>
                                 <button 
-                                    onClick={() => setIsEditing(false)}
+                                    onClick={() => { setIsEditing(false); setFlashError(null); }}
                                     className="px-6 py-2 rounded bg-gray-700 hover:bg-gray-600 text-white font-bold"
                                 >
                                     Cancel

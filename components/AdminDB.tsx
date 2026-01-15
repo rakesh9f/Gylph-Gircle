@@ -5,6 +5,7 @@ import { useDb } from '../hooks/useDb';
 import Card from './shared/Card';
 import Modal from './shared/Modal';
 import Button from './shared/Button';
+import { cloudManager } from '../services/cloudManager';
 
 const AdminDB: React.FC = () => {
   const { table } = useParams<{ table: string }>();
@@ -125,9 +126,16 @@ const AdminDB: React.FC = () => {
                                     {headers.map(h => (
                                         <td key={h} className="p-3 text-xs truncate max-w-[200px]" title={String(row[h])}>
                                             {(h.includes('image') || h.includes('url') || String(row[h]).startsWith('http')) ? (
-                                                <div className="flex items-center gap-2">
-                                                    {h.includes('image') && <img src={String(row[h])} alt="preview" className="w-6 h-6 object-cover rounded" />}
-                                                    <a href={String(row[h])} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 underline">Link</a>
+                                                <div className="flex items-center justify-center gap-2">
+                                                    {h.includes('image') && (
+                                                        <img 
+                                                            src={cloudManager.resolveImage(String(row[h]))} 
+                                                            alt="preview" 
+                                                            className="w-8 h-8 object-cover object-center rounded bg-black"
+                                                            referrerPolicy="no-referrer"
+                                                        />
+                                                    )}
+                                                    <a href={cloudManager.resolveImage(String(row[h]))} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 underline">Link</a>
                                                 </div>
                                             ) : (
                                                 typeof row[h] === 'object' ? JSON.stringify(row[h]) : String(row[h])

@@ -6,6 +6,7 @@ import { useDb } from '../hooks/useDb';
 import { useAuth } from '../context/AuthContext';
 import Card from './shared/Card';
 import { useTranslation } from '../hooks/useTranslation';
+import { cloudManager } from '../services/cloudManager';
 
 const Home: React.FC = () => {
   const [bgIndex, setBgIndex] = useState(0);
@@ -48,15 +49,16 @@ const Home: React.FC = () => {
                 backgroundImage: `url(${image})`, 
                 opacity: index === bgIndex ? 1 : 0,
                 transform: index === bgIndex ? 'scale(1.1)' : 'scale(1.0)',
-                transition: 'opacity 2s ease-in-out, transform 8s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                transition: 'opacity 2000ms ease-in-out, transform 8000ms cubic-bezier(0.25, 0.46, 0.45, 0.94)',
                 zIndex: -1
             }}
           />
         ))}
-        {/* Spiritual Gradient Overlay: Maroon to Midnight Blue */}
-        <div className="absolute inset-0 bg-gradient-to-b from-blue-950/80 via-black/40 to-maroon-950/90 mix-blend-multiply z-0 pointer-events-none" />
-        {/* Vignette */}
-        <div className="absolute inset-0 bg-black/30 z-0 pointer-events-none" />
+        {/* Spiritual Gradient Overlay: Dark Blue to Maroon with Gold hint */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0F172A]/80 via-[#310000]/40 to-[#450a0a]/90 mix-blend-multiply z-0 pointer-events-none" />
+        
+        {/* Cinematic Vignette */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_20%,rgba(0,0,0,0.8)_100%)] z-0 pointer-events-none" />
       </div>
 
       {/* Main Content */}
@@ -87,7 +89,7 @@ const Home: React.FC = () => {
                     {activeFeature.image_url && (
                         <div className="md:w-2/5 h-72 md:h-auto feature-image-container">
                             <img 
-                                src={activeFeature.image_url} 
+                                src={cloudManager.resolveImage(activeFeature.image_url)} 
                                 alt={activeFeature.title} 
                                 className="dynamic-image" 
                             />
@@ -124,13 +126,13 @@ const Home: React.FC = () => {
                     {service.image && (
                         <div className="h-48 feature-image-container border-b border-amber-500/10">
                             <img 
-                                src={service.image} 
+                                src={cloudManager.resolveImage(service.image)} 
                                 alt={service.name} 
                                 className="dynamic-image opacity-80 group-hover:opacity-100"
                                 onError={(e) => {
-                                    console.error(`❌ Image Failed for ${service.name}:`, service.image);
-                                    // Fallback to Unsplash random nature image if broken
-                                    e.currentTarget.src = `https://source.unsplash.com/random/400x300/?nature,mystic&sig=${idx}`;
+                                    // Use a reliable fallback image if the primary one fails
+                                    console.warn(`⚠️ Image failed for ${service.name}, using fallback.`);
+                                    e.currentTarget.src = "https://images.unsplash.com/photo-1531651008558-ed1740375b39?auto=format&fit=crop&q=80&w=600";
                                 }}
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent pointer-events-none"></div>

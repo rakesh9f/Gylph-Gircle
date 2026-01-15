@@ -5,6 +5,7 @@ import Button from './shared/Button';
 import { useTranslation } from '../hooks/useTranslation';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
+import { cloudManager } from '../services/cloudManager';
 
 interface FullReportProps {
   reading: string;
@@ -477,7 +478,17 @@ const FullReport: React.FC<FullReportProps> = ({ reading, title, subtitle, image
                  {/* Vedic Image or Chart - UNIVERSAL DISPLAY */}
                  {imageUrl && (
                      <div className="mb-6 h-64 w-full feature-image-container rounded-lg border border-amber-500/20">
-                         <img src={imageUrl} alt="Chart" className="dynamic-image" />
+                         <img 
+                            src={cloudManager.resolveImage(imageUrl)} 
+                            alt="Chart" 
+                            className="dynamic-image"
+                            onError={(e) => {
+                                // Fallback if specific chart image fails (e.g. invalid GDrive link)
+                                console.warn("Image load error, switching to fallback", imageUrl);
+                                e.currentTarget.src = "https://images.unsplash.com/photo-1532012197267-da84d127e765?q=80&w=1000";
+                            }}
+                            referrerPolicy="no-referrer"
+                         />
                      </div>
                  )}
 

@@ -22,6 +22,7 @@ import NumerologyAstrology from './components/NumerologyAstrology';
 import Tarot from './components/Tarot';
 import Store from './components/Store';
 import AdminGuard from './components/AdminGuard';
+import BackupManager from './components/BackupManager';
 import { useAuth } from './context/AuthContext';
 import { dbService } from './services/db';
 
@@ -131,6 +132,7 @@ function App() {
                 <Route path="/admin/payments" element={<AdminGuard><AdminPaymentConfig /></AdminGuard>} />
                 <Route path="/admin/revenue" element={<AdminGuard><RevenueDashboard /></AdminGuard>} />
                 <Route path="/admin/db/:table" element={<AdminGuard><AdminDB /></AdminGuard>} />
+                <Route path="/admin/backup" element={<AdminGuard><BackupManager /></AdminGuard>} />
 
                 {/* USER PROTECTED ROUTES */}
                 <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />

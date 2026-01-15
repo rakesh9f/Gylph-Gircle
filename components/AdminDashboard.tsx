@@ -23,7 +23,7 @@ const AdminDashboard: React.FC = () => {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center font-sans">
+    <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center font-sans p-4">
       <div className="max-w-md w-full bg-gray-800 p-8 rounded-xl shadow-2xl border border-gray-700">
         <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-white mb-2">Admin Dashboard</h1>
@@ -59,6 +59,13 @@ const AdminDashboard: React.FC = () => {
                 className="w-full py-4 bg-gradient-to-r from-emerald-600 to-teal-800 hover:from-emerald-500 hover:to-teal-700 text-white rounded font-bold transition-colors flex items-center justify-center gap-2 border border-emerald-500"
             >
                 <span>💳</span> Payment Gateways
+            </button>
+
+            <button 
+                onClick={() => navigate('/admin/backup')}
+                className="w-full py-4 bg-gradient-to-r from-gray-700 to-gray-800 hover:from-gray-600 hover:to-gray-700 text-white rounded font-bold transition-colors flex items-center justify-center gap-2 border border-gray-500"
+            >
+                <span>💾</span> Backup & Restore
             </button>
         </div>
 

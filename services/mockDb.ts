@@ -123,7 +123,7 @@ export const MOCK_DATABASE: MockDatabase = {
       name: 'Palmistry', 
       description: 'Read the lines on your hand to understand your character and future.', 
       path: '/palmistry', 
-      image: 'https://images.unsplash.com/photo-1516575334481-f85287c2c81d?q=80&w=600', 
+      image: 'https://images.unsplash.com/photo-1602213669352-70b8a3623271?q=80&w=600', 
       status: 'active' 
     },
     { 
@@ -131,7 +131,7 @@ export const MOCK_DATABASE: MockDatabase = {
       name: 'Tarot', 
       description: 'Draw a card and gain insight into your past, present, and future.', 
       path: '/tarot', 
-      image: 'https://images.unsplash.com/photo-1620025707787-73ac97ebcb42?q=80&w=600', 
+      image: 'https://images.unsplash.com/photo-1632057276939-2c70cb3f40f0?q=80&w=600', 
       status: 'active' 
     },
     { 
@@ -147,7 +147,7 @@ export const MOCK_DATABASE: MockDatabase = {
       name: 'Numerology', 
       description: 'Uncover the secrets hidden in your name and birth date.', 
       path: '/numerology', 
-      image: 'https://images.unsplash.com/photo-1596727147705-54a9d0c20966?q=80&w=600', 
+      image: 'https://images.unsplash.com/photo-1635326444826-0032f9488395?q=80&w=600', 
       status: 'active' 
     },
     { 
@@ -155,7 +155,7 @@ export const MOCK_DATABASE: MockDatabase = {
       name: 'Vedic Store', 
       description: 'Authentic Rudraksha, Yantras, and Gemstones for your spiritual path.', 
       path: '/store', 
-      image: 'https://images.unsplash.com/photo-1623933621489-1375da7d2729?q=80&w=600', 
+      image: 'https://images.unsplash.com/photo-1615486511484-92e572499757?q=80&w=600', 
       status: 'active' 
     },
     { 
@@ -163,7 +163,7 @@ export const MOCK_DATABASE: MockDatabase = {
       name: 'Vedic Matchmaking', 
       description: 'Check marital compatibility using the ancient Guna Milan system.', 
       path: '/matchmaking', 
-      image: 'https://images.unsplash.com/photo-1515934751635-c81c6bc9a2d8?q=80&w=600', 
+      image: 'https://images.unsplash.com/photo-1516961642265-531546e84af2?q=80&w=600', 
       status: 'active' 
     },
     { 
@@ -171,7 +171,7 @@ export const MOCK_DATABASE: MockDatabase = {
       name: 'Personal Guidance', 
       description: 'Get personalized remedies and guidance for your life challenges.', 
       path: '/remedy', 
-      image: 'https://images.unsplash.com/photo-1528319725582-ddc096101511?q=80&w=600', 
+      image: 'https://images.unsplash.com/photo-1606214309328-97277873a5a4?q=80&w=600', 
       status: 'active' 
     },
   ],

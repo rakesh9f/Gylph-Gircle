@@ -1,6 +1,6 @@
 
 import { MOCK_DATABASE } from './mockDb';
-import { securityService } from './security';
+// import { securityService } from './security'; // Temporarily disabled for stability
 
 // Define Window interface for SQL.js
 declare global {
@@ -13,7 +13,7 @@ class SqliteService {
   private db: any = null;
   private SQL: any = null;
   private isReady: boolean = false;
-  private readonly DB_NAME = 'glyph_circle_production_encrypted_v3.sqlite';
+  private readonly DB_NAME = 'glyph_circle_prod_v4.sqlite'; // Updated version
 
   constructor() {
     this.init();
@@ -24,12 +24,6 @@ class SqliteService {
     if (this.isReady) return;
 
     try {
-      // 1. Integrity Check
-      if (!securityService.checkSystemIntegrity()) {
-          console.error("🚨 SYSTEM INTEGRITY COMPROMISED. DATABASE LOCKDOWN.");
-          return;
-      }
-
       if (!window.initSqlJs) {
         console.error("SQL.js not loaded.");
         return;
@@ -39,29 +33,26 @@ class SqliteService {
         locateFile: (file: string) => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${file}`
       });
 
-      // 2. Load & Decrypt Database
-      const encryptedDb = localStorage.getItem(this.DB_NAME);
+      // 1. Load Database from Storage
+      const savedDb = localStorage.getItem(this.DB_NAME);
       
-      if (encryptedDb) {
+      if (savedDb) {
         try {
-            console.log("🔐 Decrypting Database...");
-            const decryptedBase64 = await securityService.decryptData(encryptedDb);
-            
-            if (decryptedBase64) {
-                const binaryArray = this.base64ToUint8Array(decryptedBase64);
-                this.db = new this.SQL.Database(binaryArray);
-                console.log("📂 SQLite: Loaded & Decrypted.");
-            } else {
-                throw new Error("Decryption returned null");
-            }
+            // Direct load for stability
+            const binaryArray = this.base64ToUint8Array(savedDb);
+            this.db = new this.SQL.Database(binaryArray);
+            console.log("📂 SQLite: Loaded from Storage.");
         } catch (e) {
-            console.error("❌ SQLite: Crypto Fail. Resetting DB...", e);
+            console.error("❌ SQLite: Load Fail. Resetting DB...", e);
+            // Backup the corrupted string just in case
+            localStorage.setItem(this.DB_NAME + '_corrupt_backup', savedDb);
+            
             this.db = new this.SQL.Database();
             this.autoMigrateFromMock();
         }
       } else {
         this.db = new this.SQL.Database();
-        console.log("🆕 SQLite: Created new encrypted instance.");
+        console.log("🆕 SQLite: Created new instance.");
         this.autoMigrateFromMock();
       }
 
@@ -100,6 +91,12 @@ class SqliteService {
           const createSql = `CREATE TABLE IF NOT EXISTS ${tableName} (${columnDefinitions.join(', ')});`;
           this.db.run(createSql);
           
+          // Only insert if table is empty to avoid duplicates on migration re-run
+          const countRes = this.db.exec(`SELECT count(*) as count FROM ${tableName}`);
+          if (countRes.length > 0 && countRes[0].values[0][0] > 0) {
+              return; // Table has data, skip seeding
+          }
+
           const placeholders = columns.map(() => '?').join(', ');
           const insertSql = `INSERT INTO ${tableName} (${columns.join(', ')}) VALUES (${placeholders})`;
           const stmt = this.db.prepare(insertSql);
@@ -189,7 +186,7 @@ class SqliteService {
         values.push(id);
         this.db.run(sql, values);
         this.saveToStorage();
-    } catch (e) { }
+    } catch (e) { console.error("SQL Update Error", e); }
   }
 
   toggleStatus(tableName: string, id: string | number) {
@@ -201,15 +198,101 @@ class SqliteService {
     }
   }
 
-  // --- ENCRYPTED PERSISTENCE ---
-  private async saveToStorage() {
-    if (this.db) {
-        const data = this.db.export();
-        const base64 = this.uint8ArrayToBase64(data);
+  // --- EXPORT / IMPORT ---
+  exportAllData(): Record<string, any[]> {
+    if (!this.db) return {};
+    try {
+        const tablesRes = this.db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'");
+        if (!tablesRes.length) return {};
         
-        // Encrypt before saving
-        const encrypted = await securityService.encryptData(base64);
-        localStorage.setItem(this.DB_NAME, encrypted);
+        const tableNames = tablesRes[0].values.map((row: any[]) => row[0]);
+        const exportData: Record<string, any[]> = {};
+        
+        tableNames.forEach((tableName: string) => {
+            exportData[tableName] = this.getAll(tableName);
+        });
+        return exportData;
+    } catch(e) {
+        console.error("Export Failed", e);
+        return {};
+    }
+  }
+
+  importFromJson(jsonData: Record<string, any[]>) {
+    if (!this.db) return;
+    try {
+        // We use a transaction for atomic restore
+        // Note: sql.js transactions might need explicit handling if not in worker
+        // but we'll do best effort.
+        
+        Object.keys(jsonData).forEach(tableName => {
+            const rows = jsonData[tableName];
+            if (!Array.isArray(rows) || rows.length === 0) return;
+
+            // 1. Detect Schema from first row of backup
+            const sample = rows[0];
+            const columns = Object.keys(sample);
+            const columnDefs = columns.map(k => {
+                 // Simple type inference
+                 const val = sample[k];
+                 let type = 'TEXT';
+                 if (typeof val === 'number') type = Number.isInteger(val) ? 'INTEGER' : 'REAL';
+                 return k === 'id' ? `${k} ${type} PRIMARY KEY` : `${k} ${type}`;
+            });
+
+            // 2. Drop and Recreate Table
+            this.db.run(`DROP TABLE IF EXISTS ${tableName}`);
+            this.db.run(`CREATE TABLE ${tableName} (${columnDefs.join(', ')})`);
+            
+            // 3. Insert Data
+            const placeholders = columns.map(() => '?').join(', ');
+            const insertSql = `INSERT INTO ${tableName} (${columns.join(', ')}) VALUES (${placeholders})`;
+            const stmt = this.db.prepare(insertSql);
+            
+            rows.forEach(row => {
+                const values = columns.map(col => {
+                    const val = row[col];
+                    if (val === undefined || val === null) return null;
+                    if (typeof val === 'object') return JSON.stringify(val);
+                    if (typeof val === 'boolean') return val ? 1 : 0;
+                    return val;
+                });
+                stmt.run(values);
+            });
+            stmt.free();
+        });
+
+        this.saveToStorage();
+        console.log("✅ Database Restored from JSON");
+    } catch (e) {
+        console.error("Import failed", e);
+        throw new Error("Failed to restore database from file.");
+    }
+  }
+
+  // --- PERSISTENCE ---
+  private saveToStorage() {
+    if (this.db) {
+        try {
+            // Attempt to compact the database before saving to save space
+            // this.db.run("VACUUM"); 
+            
+            const data = this.db.export();
+            const base64 = this.uint8ArrayToBase64(data);
+            
+            // Check approximate size (Base64 is ~1.33x binary size)
+            // 5MB limit means ~3.7MB binary limit
+            if (base64.length > 4500000) {
+                console.warn("⚠️ Database size approaching LocalStorage limit!");
+            }
+
+            localStorage.setItem(this.DB_NAME, base64);
+        } catch (e: any) {
+            console.error("❌ CRITICAL: Failed to save Database to LocalStorage", e);
+            if (e.name === 'QuotaExceededError') {
+                alert("Storage Full! Your changes cannot be saved. Please clear some data or use Backup/Restore.");
+            }
+        }
     }
   }
 
