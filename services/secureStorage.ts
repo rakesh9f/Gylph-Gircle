@@ -1,5 +1,5 @@
 
-import { encryptData, decryptData } from './security';
+import { securityService } from './security';
 
 // Secure Storage Wrapper
 // Replaces localStorage with an encrypted layer
@@ -8,7 +8,7 @@ export const secureStorage = {
   setItem: async (key: string, value: any): Promise<void> => {
     try {
       const stringValue = JSON.stringify(value);
-      const encrypted = await encryptData(stringValue);
+      const encrypted = await securityService.encryptData(stringValue);
       localStorage.setItem(key, encrypted);
     } catch (e) {
       console.error("Secure Storage Write Error", e);
@@ -20,7 +20,7 @@ export const secureStorage = {
       const raw = localStorage.getItem(key);
       if (!raw) return null;
 
-      const decrypted = await decryptData(raw);
+      const decrypted = await securityService.decryptData(raw);
       if (!decrypted) return null;
 
       return JSON.parse(decrypted) as T;

@@ -7,12 +7,16 @@ import { Language } from '../context/LanguageContext';
 const LANGUAGES: { code: Language; label: string; flag: string }[] = [
   { code: 'en', label: 'English', flag: '🇺🇸' },
   { code: 'hi', label: 'हिंदी', flag: '🇮🇳' },
+  { code: 'es', label: 'Español', flag: '🇪🇸' },
+  { code: 'fr', label: 'Français', flag: '🇫🇷' },
+  { code: 'de', label: 'Deutsch', flag: '🇩🇪' },
+  { code: 'ru', label: 'Русский', flag: '🇷🇺' },
+  { code: 'ja', label: '日本語', flag: '🇯🇵' },
+  { code: 'zh', label: '中文', flag: '🇨🇳' },
   { code: 'ta', label: 'தமிழ்', flag: '🇮🇳' },
   { code: 'te', label: 'తెలుగు', flag: '🇮🇳' },
   { code: 'bn', label: 'বাংলা', flag: '🇮🇳' },
   { code: 'mr', label: 'मराठी', flag: '🇮🇳' },
-  { code: 'es', label: 'Español', flag: '🇪🇸' },
-  { code: 'fr', label: 'Français', flag: '🇫🇷' },
   { code: 'ar', label: 'العربية', flag: '🇸🇦' },
   { code: 'pt', label: 'Português', flag: '🇧🇷' },
 ];
@@ -43,7 +47,7 @@ const LanguageSwitcher: React.FC = () => {
           <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)}></div>
           <div 
             className={`
-                absolute top-12 w-48 bg-gray-900 border border-amber-500/30 rounded-xl shadow-2xl overflow-hidden z-50 max-h-80 overflow-y-auto
+                absolute top-12 w-48 bg-gray-900 border border-amber-500/30 rounded-xl shadow-2xl overflow-hidden z-50 max-h-80 overflow-y-auto custom-scrollbar
                 ${isRTL ? 'left-0' : 'right-0'}
             `}
           >
@@ -64,7 +68,7 @@ const LanguageSwitcher: React.FC = () => {
                         `}
                     >
                         <span className="text-lg">{lang.flag}</span>
-                        <span className={`font-medium ${['hi','ta','te','bn','mr','ar'].includes(lang.code) ? 'font-sans' : 'font-cinzel'}`}>
+                        <span className={`font-medium ${['hi','ta','te','bn','mr','ar','ja','zh'].includes(lang.code) ? 'font-sans' : 'font-cinzel'}`}>
                             {lang.label}
                         </span>
                         {language === lang.code && (

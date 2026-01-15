@@ -1,12 +1,14 @@
 
 import React, { useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useDb } from '../hooks/useDb';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from '../hooks/useTranslation';
+import { usePayment } from '../context/PaymentContext';
 import Card from './shared/Card';
 import Button from './shared/Button';
 import Modal from './shared/Modal';
+import { cloudManager } from '../services/cloudManager';
 
 interface CartItem {
   id: number | string;
@@ -17,23 +19,28 @@ interface CartItem {
 }
 
 const Store: React.FC = () => {
-  const { db, toggleStatus } = useDb();
+  const { db, toggleStatus, createEntry } = useDb();
   const { user } = useAuth();
   const { t, getRegionalPrice } = useTranslation();
+  const { openPayment } = usePayment();
+  const navigate = useNavigate();
   
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [sortOption, setSortOption] = useState('default');
+  
+  // Toast State
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const isAdmin = user?.role === 'admin';
 
   // --- DERIVED STATE ---
-  const categories = ['All', ...Array.from(new Set(db.store_items.map((i: any) => i.category || 'General')))];
+  const categories: string[] = ['All', ...Array.from(new Set((db.store_items || []).map((i: any) => i.category || 'General'))) as string[]];
 
   const filteredItems = useMemo(() => {
-    let items = db.store_items;
+    let items = db.store_items || [];
 
     // 1. Admin Filter (Show inactive to admins, hide for users)
     if (!isAdmin) {
@@ -70,11 +77,17 @@ const Store: React.FC = () => {
       if (existing) {
         return prev.map(i => i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i);
       }
-      // Mock Image if missing
-      const img = item.image_url || `https://source.unsplash.com/random/200x200/?${item.category},spiritual`;
+      // Use dynamic proxy image for cart preview as well
+      const img = cloudManager.getProxyImageUrl(item.id, item.image_url || `https://source.unsplash.com/random/200x200/?${item.category},spiritual`);
       return [...prev, { id: item.id, name: item.name, price: item.price, quantity: 1, image: img }];
     });
+    
+    // Feedback
     if (navigator.vibrate) navigator.vibrate(50);
+    
+    // Show Toast
+    setToastMessage(`${item.name} added to cart ✨`);
+    setTimeout(() => setToastMessage(null), 3000);
   };
 
   const removeFromCart = (itemId: number | string) => {
@@ -91,6 +104,29 @@ const Store: React.FC = () => {
     }));
   };
 
+  const handleCheckout = () => {
+      const { display } = getRegionalPrice(cartTotal);
+      openPayment(() => {
+          // Success Callback
+          const orderPayload = {
+              user_id: user?.id || 'guest',
+              item_ids: JSON.stringify(cart.map(c => ({ id: c.id, qty: c.quantity }))),
+              total: cartTotal,
+              description: `Store Order: ${cart.length} items`,
+              status: 'paid'
+          };
+          
+          createEntry('store_orders', orderPayload);
+          setCart([]);
+          setIsCartOpen(false);
+          
+          // Show Success Message (Simple alert for now, could be a toast)
+          if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+          alert("Payment Successful! Your mystical artifacts are being prepared.");
+          
+      }, display);
+  };
+
   const getItemDescription = (item: any) => {
     if (item.description && item.description.trim() !== '') {
       return item.description;
@@ -98,19 +134,37 @@ const Store: React.FC = () => {
     return `Authentic ${item.name} enhances intuition and spiritual connection. Recommended for Sagittarius.`;
   };
 
-  // Generate a consistent placeholder image based on ID if real one missing
+  // --- SMART IMAGE LOADING ---
   const getImageUrl = (item: any) => {
-      if (item.image_url) return item.image_url;
-      // Static keywords based on category for Unsplash source (using updated Unsplash API format logic or static placeholder)
-      // Since source.unsplash is deprecated/unreliable in some contexts, let's use a robust placeholder or hardcoded logic
-      const seed = item.id;
-      return `https://images.unsplash.com/photo-1600609842388-3e4b489d71c6?auto=format&fit=crop&w=400&q=80`; // Generic crystal fallback
+      // Fallback if DB doesn't have an image path
+      const fallback = item.image_url || `https://images.unsplash.com/photo-1600609842388-3e4b489d71c6?auto=format&fit=crop&w=400&q=80`;
+      // Use Cloud Manager to proxy the URL if a provider is active
+      return cloudManager.getProxyImageUrl(item.id, fallback);
   };
 
   return (
-    <div className="min-h-screen pb-20">
+    <div className="min-h-screen pb-20 relative">
+      {/* FLOATING BACK BUTTON */}
+      <button 
+        onClick={() => navigate('/home')}
+        className="fixed top-20 left-4 z-30 bg-black/60 backdrop-blur border border-amber-500/30 text-amber-200 p-2 rounded-full shadow-lg md:hidden hover:bg-black/80 transition-colors"
+        title="Back to Home"
+      >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+      </button>
+
+      {/* TOAST NOTIFICATION */}
+      {toastMessage && (
+        <div className="fixed bottom-24 right-4 md:top-24 md:bottom-auto z-50 bg-green-900/90 text-white px-6 py-3 rounded-lg shadow-[0_0_20px_rgba(34,197,94,0.4)] border border-green-500/50 flex items-center gap-3 animate-fade-in-up">
+            <span className="text-xl">🛍️</span>
+            <span className="font-cinzel font-bold text-sm">{toastMessage}</span>
+        </div>
+      )}
+
       {/* HEADER */}
-      <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 pt-4 md:pt-0">
         <div>
             <Link to="/home" className="inline-flex items-center text-amber-200 hover:text-amber-400 transition-colors mb-2">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
@@ -186,20 +240,20 @@ const Store: React.FC = () => {
               {filteredItems.map((item: any) => (
                   <div key={item.id} className={`group relative bg-gray-900 border ${item.status === 'active' ? 'border-amber-500/20' : 'border-red-900/50 opacity-70'} rounded-xl overflow-hidden hover:shadow-[0_0_20px_rgba(245,158,11,0.15)] transition-all duration-300 flex flex-col`}>
                       
-                      {/* Image Area */}
-                      <div className="h-48 overflow-hidden relative">
+                      {/* Image Area - UNIVERSAL CONTAINER */}
+                      <div className="h-48 feature-image-container">
                           <img 
                             src={getImageUrl(item)} 
                             alt={item.name}
-                            className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
+                            className="dynamic-image"
                           />
-                          <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-transparent to-transparent"></div>
+                          <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-transparent to-transparent pointer-events-none"></div>
                           
                           {/* Admin Toggle */}
                           {isAdmin && (
                               <button 
                                 onClick={() => toggleStatus('store_items', item.id)}
-                                className={`absolute top-2 right-2 text-[10px] font-bold px-2 py-1 rounded border ${item.status === 'active' ? 'bg-green-900/80 text-green-300 border-green-500' : 'bg-red-900/80 text-red-300 border-red-500'}`}
+                                className={`absolute top-2 right-2 text-[10px] font-bold px-2 py-1 rounded border z-20 ${item.status === 'active' ? 'bg-green-900/80 text-green-300 border-green-500' : 'bg-red-900/80 text-red-300 border-red-500'}`}
                               >
                                   {item.status === 'active' ? 'ACTIVE' : 'INACTIVE'}
                               </button>
@@ -234,6 +288,15 @@ const Store: React.FC = () => {
               ))}
           </div>
       )}
+
+      {/* BOTTOM NAVIGATION */}
+      <div className="mt-12 text-center border-t border-amber-500/20 pt-8">
+          <Link to="/home">
+              <Button className="bg-transparent border border-amber-500/50 hover:bg-amber-900/20 text-amber-200">
+                  &larr; Back to Sanctuary
+              </Button>
+          </Link>
+      </div>
 
       {/* CART MODAL */}
       <Modal isVisible={isCartOpen} onClose={() => setIsCartOpen(false)}>
@@ -273,8 +336,12 @@ const Store: React.FC = () => {
                       <span>Total</span>
                       <span>{getRegionalPrice(cartTotal).display}</span>
                   </div>
-                  <Button className="w-full" disabled={cart.length === 0} onClick={() => alert("Checkout integration pending.")}>
-                      Proceed to Checkout
+                  <Button 
+                    className="w-full bg-gradient-to-r from-green-700 to-green-900 border-green-500" 
+                    disabled={cart.length === 0} 
+                    onClick={handleCheckout}
+                  >
+                      {cart.length === 0 ? 'Cart Empty' : 'Proceed to Checkout'}
                   </Button>
               </div>
           </div>

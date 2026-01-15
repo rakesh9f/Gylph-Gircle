@@ -5,7 +5,8 @@ import Loader from './shared/Loader';
 import { useTranslation } from '../hooks/useTranslation';
 import { useUser } from '../context/UserContext';
 import { dbService } from '../services/db';
-import { checkSystemIntegrity } from '../services/security';
+import { securityService } from '../services/security';
+import { paymentManager, PaymentProvider } from '../services/paymentManager';
 
 // Define Razorpay on Window
 declare global {
@@ -21,36 +22,43 @@ interface PaymentModalProps {
   price: string;
 }
 
-const RAZORPAY_TEST_KEY = "rzp_test_1DP5mmOlF5G5ag"; // Public Test Key
-
 const PaymentModal: React.FC<PaymentModalProps> = ({ isVisible, onClose, onSuccess, price }) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [activeProvider, setActiveProvider] = useState<PaymentProvider | null>(null);
   const { t } = useTranslation();
   const { user, commitPendingReading, pendingReading, refreshUser } = useUser();
 
-  // Load Razorpay SDK
+  // Load SDKs on mount (simulated for now, would typically load specific script based on provider)
   useEffect(() => {
     const script = document.createElement('script');
     script.src = 'https://checkout.razorpay.com/v1/checkout.js';
     script.async = true;
     document.body.appendChild(script);
-    
     return () => {
       document.body.removeChild(script);
     };
   }, []);
+
+  // Detect Region and Set Provider
+  useEffect(() => {
+      if (isVisible) {
+          const region = paymentManager.detectUserCountry();
+          const provider = paymentManager.getActiveProvider(region);
+          setActiveProvider(provider);
+      }
+  }, [isVisible]);
 
   if (!isVisible) return null;
 
   const handlePaymentSuccess = async (paymentId: string) => {
     setIsLoading(true);
     
-    if (user) {
-      // 1. Record Encrypted Transaction (simulated by dbService logic, could utilize secureStorage internally)
+    if (user && activeProvider) {
+      // 1. Record Encrypted Transaction
       dbService.recordTransaction({
         user_id: user.id,
-        amount: 49.00, // Fixed INR Price
-        description: pendingReading ? `Razorpay: ${pendingReading.title}` : 'Razorpay Credit',
+        amount: activeProvider.provider_type === 'razorpay' ? 49.00 : 0.99, 
+        description: pendingReading ? `${activeProvider.name}: ${pendingReading.title}` : `Credit Topup (${activeProvider.name})`,
         status: 'success'
       });
 
@@ -68,27 +76,47 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isVisible, onClose, onSucce
     onClose();
   };
 
-  const initRazorpay = () => {
-    if (!checkSystemIntegrity()) {
+  const handleInitiatePayment = () => {
+    if (!securityService.checkSystemIntegrity()) {
         alert("Security Alert: Payment blocked due to insecure environment.");
+        return;
+    }
+
+    if (!activeProvider) {
+        alert("No active payment provider found for your region.");
         return;
     }
 
     setIsLoading(true);
 
+    if (activeProvider.provider_type === 'razorpay') {
+        initRazorpay(activeProvider);
+    } else if (activeProvider.provider_type === 'stripe') {
+        // Simulate Stripe
+        setTimeout(() => {
+            handlePaymentSuccess('stripe_mock_id_123');
+        }, 1500);
+    } else {
+        // Simulate PayPal / Generic
+        setTimeout(() => {
+            handlePaymentSuccess('paypal_mock_id_123');
+        }, 1500);
+    }
+  };
+
+  const initRazorpay = (provider: PaymentProvider) => {
     const options = {
-      key: RAZORPAY_TEST_KEY,
+      key: provider.api_key,
       amount: 4900, // ₹49.00 in paise
-      currency: "INR",
+      currency: provider.currency || "INR",
       name: "Glyph Circle",
       description: pendingReading?.title || "Mystical Services",
       image: "https://cdn-icons-png.flaticon.com/512/3063/3063822.png",
       handler: function (response: any) {
-        // In prod, verify signature on backend: response.razorpay_signature
         handlePaymentSuccess(response.razorpay_payment_id);
       },
       prefill: {
-        name: "Mystical Seeker",
+        name: user?.name || "Mystical Seeker",
         email: user?.email || "seeker@glyph.circle",
         contact: "9999999999"
       },
@@ -138,19 +166,24 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isVisible, onClose, onSucce
                 Secure Gateway
             </h3>
             <p className="text-amber-200/60 text-sm mb-6">
-                Pay <span className="text-white font-bold">₹49.00</span> to unlock deep insights.
+                Pay <span className="text-white font-bold">{activeProvider ? `${activeProvider.currency === 'INR' ? '₹' : '$'}${activeProvider.currency === 'INR' ? '49.00' : '0.99'}` : price}</span> to unlock deep insights.
             </p>
 
             <div className="space-y-3">
-                <Button onClick={initRazorpay} disabled={isLoading} className="w-full bg-gradient-to-r from-blue-600 to-blue-800 border-none shadow-lg">
-                    {isLoading ? 'Connecting...' : 'Pay via UPI / Card'}
+                <Button onClick={handleInitiatePayment} disabled={isLoading} className="w-full bg-gradient-to-r from-blue-600 to-blue-800 border-none shadow-lg">
+                    {isLoading ? 'Connecting...' : `Pay via ${activeProvider?.name || 'Card'}`}
                 </Button>
             </div>
 
-            <div className="mt-6 flex items-center justify-center gap-2 text-[10px] text-amber-500/40 uppercase tracking-widest">
-                <span>Razorpay Secured</span>
-                <span>•</span>
-                <span>256-bit Encrypted</span>
+            <div className="mt-6 flex flex-col items-center justify-center gap-1 text-[10px] text-amber-500/40 uppercase tracking-widest">
+                <div className="flex gap-2">
+                    <span>{activeProvider?.provider_type || 'Secure'}</span>
+                    <span>•</span>
+                    <span>256-bit SSL</span>
+                </div>
+                {activeProvider && (
+                    <span className="text-[9px] text-gray-600">Routing via {activeProvider.country_codes}</span>
+                )}
             </div>
         </div>
       </div>

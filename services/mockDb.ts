@@ -13,12 +13,84 @@ export interface MockDatabase {
 
 const DB_SESSION_KEY = 'glyph_circle_mock_db';
 
-const MOCK_DATABASE: MockDatabase = {
+export const MOCK_DATABASE: MockDatabase = {
   users: [
     { id: 1, name: 'rocky', role: 'admin', status: 'active', email: 'rocky@glyph.co' },
     { id: 2, name: 'Minti', role: 'admin', status: 'active', email: 'minti@glyph.co' },
     { id: 3, name: 'Test User', role: 'user', status: 'inactive', email: 'test@example.com' },
     { id: 4, name: 'Jane Doe', role: 'user', status: 'active', email: 'jane.d@example.com' },
+  ],
+  cloud_providers: [
+    { 
+      id: 'gdrive_main', 
+      provider: 'Google Drive', 
+      name: 'Primary Rudraksha Drive', 
+      api_key: 'AIzaSy...', 
+      folder_id: '1A2B3C...', 
+      is_active: true, 
+      status: 'active' 
+    },
+    { 
+      id: 'dropbox_backup', 
+      provider: 'Dropbox', 
+      name: 'Backup Assets', 
+      api_key: 'db_key_123', 
+      folder_id: '/glyph/assets', 
+      is_active: false, 
+      status: 'active' 
+    },
+    { 
+      id: 's3_archive', 
+      provider: 'AWS S3', 
+      name: 'Cold Storage', 
+      api_key: 'AKIA...', 
+      secret: 'wJalr...', 
+      folder_id: 'glyph-bucket-v1', 
+      region: 'ap-south-1', 
+      is_active: false, 
+      status: 'active' 
+    }
+  ],
+  payment_providers: [
+    {
+      id: 'razorpay_in',
+      name: 'Razorpay India',
+      provider_type: 'razorpay',
+      is_active: true,
+      api_key: 'rzp_test_1DP5mmOlF5G5ag',
+      api_secret: 'secret_123',
+      merchant_id: 'mid_rzp_001',
+      currency: 'INR',
+      country_codes: 'IN', // Comma separated ISO codes
+      credentials_json: '{"theme_color": "#F59E0B"}',
+      status: 'active'
+    },
+    {
+      id: 'stripe_global',
+      name: 'Stripe International',
+      provider_type: 'stripe',
+      is_active: true,
+      api_key: 'pk_test_stripe_123',
+      api_secret: 'sk_test_stripe_456',
+      merchant_id: 'acct_stripe_001',
+      currency: 'USD',
+      country_codes: 'US,UK,EU,GLOBAL',
+      credentials_json: '{}',
+      status: 'active'
+    },
+    {
+      id: 'paypal_backup',
+      name: 'PayPal Standard',
+      provider_type: 'paypal',
+      is_active: false,
+      api_key: 'client_id_paypal',
+      api_secret: 'secret_paypal',
+      merchant_id: 'merchant_paypal',
+      currency: 'USD',
+      country_codes: 'GLOBAL',
+      credentials_json: '{}',
+      status: 'active'
+    }
   ],
   merchant_info: [
     {
@@ -28,6 +100,80 @@ const MOCK_DATABASE: MockDatabase = {
       card: "Glyph Circle Pvt Ltd",
       status: 'active'
     }
+  ],
+  services: [
+    { 
+      id: 'dream-analysis', 
+      name: 'Dream Analysis', 
+      description: 'Decode the symbols of your subconscious and find your lucky numbers.', 
+      path: '/dream-analysis', 
+      image: 'https://images.unsplash.com/photo-1519638399535-1b036603ac77?q=80&w=600', 
+      status: 'active' 
+    },
+    { 
+      id: 'face-reading', 
+      name: 'Face Reading', 
+      description: 'Discover what your facial features reveal about your personality.', 
+      path: '/face-reading', 
+      image: 'https://images.unsplash.com/photo-1595152772835-219674b2a8a6?q=80&w=600', 
+      status: 'active' 
+    },
+    { 
+      id: 'palmistry', 
+      name: 'Palmistry', 
+      description: 'Read the lines on your hand to understand your character and future.', 
+      path: '/palmistry', 
+      image: 'https://images.unsplash.com/photo-1516575334481-f85287c2c81d?q=80&w=600', 
+      status: 'active' 
+    },
+    { 
+      id: 'tarot', 
+      name: 'Tarot', 
+      description: 'Draw a card and gain insight into your past, present, and future.', 
+      path: '/tarot', 
+      image: 'https://images.unsplash.com/photo-1620025707787-73ac97ebcb42?q=80&w=600', 
+      status: 'active' 
+    },
+    { 
+      id: 'astrology', 
+      name: 'Astrology', 
+      description: 'Explore your destiny written in the stars and planets.', 
+      path: '/astrology', 
+      image: 'https://images.unsplash.com/photo-1532968961962-8a0cb3a2d4f5?q=80&w=600', 
+      status: 'active' 
+    },
+    { 
+      id: 'numerology', 
+      name: 'Numerology', 
+      description: 'Uncover the secrets hidden in your name and birth date.', 
+      path: '/numerology', 
+      image: 'https://images.unsplash.com/photo-1596727147705-54a9d0c20966?q=80&w=600', 
+      status: 'active' 
+    },
+    { 
+      id: 'store', 
+      name: 'Vedic Store', 
+      description: 'Authentic Rudraksha, Yantras, and Gemstones for your spiritual path.', 
+      path: '/store', 
+      image: 'https://images.unsplash.com/photo-1623933621489-1375da7d2729?q=80&w=600', 
+      status: 'active' 
+    },
+    { 
+      id: 'matchmaking', 
+      name: 'Vedic Matchmaking', 
+      description: 'Check marital compatibility using the ancient Guna Milan system.', 
+      path: '/matchmaking', 
+      image: 'https://images.unsplash.com/photo-1515934751635-c81c6bc9a2d8?q=80&w=600', 
+      status: 'active' 
+    },
+    { 
+      id: 'remedy', 
+      name: 'Personal Guidance', 
+      description: 'Get personalized remedies and guidance for your life challenges.', 
+      path: '/remedy', 
+      image: 'https://images.unsplash.com/photo-1528319725582-ddc096101511?q=80&w=600', 
+      status: 'active' 
+    },
   ],
   user_subscriptions: [
     { id: 1, user_id: 3, plan: 'free', ads_enabled: true, status: 'inactive' },
@@ -53,6 +199,10 @@ const MOCK_DATABASE: MockDatabase = {
     { id: 'bg_home_1', path: '/img/bg1.jpg', caption: 'Ancient cosmic map', status: 'active' },
     { id: 'chart_kundali_default', path: 'https://images.unsplash.com/photo-1532012197267-da84d127e765?q=80&w=1000&auto=format&fit=crop', caption: 'North Indian Kundali Chart', status: 'active' },
     { id: 'chart_numerology_default', path: 'https://images.unsplash.com/photo-1507842217121-9d597543eb56?q=80&w=1000&auto=format&fit=crop', caption: 'Numerology Geometry', status: 'active' },
+    // LOGO ROTATION IMAGES
+    { id: 'logo_1', path: 'https://images.unsplash.com/photo-1614730375494-071782d3843f?q=80&w=400', caption: 'Sacred Geometry', status: 'active', tags: ['login_logo'] },
+    { id: 'logo_2', path: 'https://images.unsplash.com/photo-1603513492128-ba7bc9b3e143?q=80&w=400', caption: 'Golden Mandala', status: 'active', tags: ['login_logo'] },
+    { id: 'logo_3', path: 'https://images.unsplash.com/photo-1519074069444-1ba4fff66d16?q=80&w=400', caption: 'Mystic Nebula', status: 'active', tags: ['login_logo'] },
   ],
   feedback: [
     { id: 1, user_id: 4, rating: 5, comment: 'Very insightful reading!', created_at: '2023-10-27T12:00:00Z', status: 'active' },
@@ -102,18 +252,25 @@ const MOCK_DATABASE: MockDatabase = {
 
 export const getMockDb = (): MockDatabase => {
   try {
-    const storedDb = sessionStorage.getItem(DB_SESSION_KEY);
-    if (storedDb) {
-      return JSON.parse(storedDb);
-    } else {
-      // First time load: initialize sessionStorage with the default DB
-      const dbCopy = JSON.parse(JSON.stringify(MOCK_DATABASE));
-      sessionStorage.setItem(DB_SESSION_KEY, JSON.stringify(dbCopy));
-      return dbCopy;
+    const storedDbStr = sessionStorage.getItem(DB_SESSION_KEY);
+    const storedDb = storedDbStr ? JSON.parse(storedDbStr) : {};
+    
+    const finalDb = { ...MOCK_DATABASE, ...storedDb };
+    
+    // Safety check for new tables introduced
+    Object.keys(MOCK_DATABASE).forEach(key => {
+        if (!finalDb[key] || (Array.isArray(finalDb[key]) && finalDb[key].length === 0)) {
+            finalDb[key] = MOCK_DATABASE[key];
+        }
+    });
+
+    if (JSON.stringify(finalDb) !== storedDbStr) {
+        sessionStorage.setItem(DB_SESSION_KEY, JSON.stringify(finalDb));
     }
+
+    return finalDb;
   } catch (error) {
     console.error("Failed to read mock DB from sessionStorage:", error);
-    // Fallback to default if storage fails
     return JSON.parse(JSON.stringify(MOCK_DATABASE));
   }
 };

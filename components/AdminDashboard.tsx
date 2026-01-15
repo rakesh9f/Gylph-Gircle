@@ -46,6 +46,20 @@ const AdminDashboard: React.FC = () => {
             >
                 <span>⚙️</span> Config Panel
             </button>
+
+            <button 
+                onClick={() => navigate('/admin/cloud')}
+                className="w-full py-4 bg-gradient-to-r from-orange-600 to-orange-800 hover:from-orange-500 hover:to-orange-700 text-white rounded font-bold transition-colors flex items-center justify-center gap-2 border border-orange-500"
+            >
+                <span>☁️</span> Cloud Storage Config
+            </button>
+
+            <button 
+                onClick={() => navigate('/admin/payments')}
+                className="w-full py-4 bg-gradient-to-r from-emerald-600 to-teal-800 hover:from-emerald-500 hover:to-teal-700 text-white rounded font-bold transition-colors flex items-center justify-center gap-2 border border-emerald-500"
+            >
+                <span>💳</span> Payment Gateways
+            </button>
         </div>
 
         <div className="mt-8 pt-4 border-t border-gray-700 text-center">

@@ -97,15 +97,15 @@ const FullReport: React.FC<FullReportProps> = ({ reading, title, subtitle, image
 
               {/* ANCIENT IMAGERY SECTION */}
               <div className="grid grid-cols-2 gap-2 mt-4 opacity-80 hover:opacity-100 transition-opacity">
-                  <div className="relative h-24 overflow-hidden rounded border border-amber-500/20">
-                      <img src="https://images.unsplash.com/photo-1600609842388-3e4b489d71c6?q=80&w=400" alt="Crystal" className="object-cover w-full h-full" />
-                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                  <div className="relative h-24 feature-image-container rounded border border-amber-500/20">
+                      <img src="https://images.unsplash.com/photo-1600609842388-3e4b489d71c6?q=80&w=400" alt="Crystal" className="dynamic-image" />
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center pointer-events-none">
                           <span className="text-xs text-amber-100 font-cinzel">Yantra</span>
                       </div>
                   </div>
-                  <div className="relative h-24 overflow-hidden rounded border border-amber-500/20">
-                      <img src="https://images.unsplash.com/photo-1542645976-7973d4177b9c?q=80&w=400" alt="Vedic Script" className="object-cover w-full h-full" />
-                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                  <div className="relative h-24 feature-image-container rounded border border-amber-500/20">
+                      <img src="https://images.unsplash.com/photo-1542645976-7973d4177b9c?q=80&w=400" alt="Vedic Script" className="dynamic-image" />
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center pointer-events-none">
                           <span className="text-xs text-amber-100 font-cinzel">Sutra</span>
                       </div>
                   </div>
@@ -389,8 +389,71 @@ const FullReport: React.FC<FullReportProps> = ({ reading, title, subtitle, image
   };
 
   const handleEmailReport = () => {
-      const subject = encodeURIComponent(`🔮 ${title} - Glyph Circle Report`);
-      window.location.href = `mailto:?subject=${subject}&body=Your report is attached in spirit.`;
+      let body = `Namaste,\n\nHere is your spiritual insight from Glyph Circle.\n\n`;
+      body += `🔮 ${title.toUpperCase()}\n`;
+      if (subtitle) body += `${subtitle}\n`;
+      body += `\n`;
+
+      // --- 1. CHART DATA FORMATTING ---
+      if (chartData) {
+          // Numerology Grid
+          if (chartData.vedicGrid) {
+              body += `[ VEDIC BIRTH GRID ]\n`;
+              const g = chartData.vedicGrid;
+              // Standard Layout: 3 1 9 / 6 7 5 / 2 8 4
+              const row1 = `${g['3']?'3'.repeat(g['3']):'-'} | ${g['1']?'1'.repeat(g['1']):'-'} | ${g['9']?'9'.repeat(g['9']):'-'}`;
+              const row2 = `${g['6']?'6'.repeat(g['6']):'-'} | ${g['7']?'7'.repeat(g['7']):'-'} | ${g['5']?'5'.repeat(g['5']):'-'}`;
+              const row3 = `${g['2']?'2'.repeat(g['2']):'-'} | ${g['8']?'8'.repeat(g['8']):'-'} | ${g['4']?'4'.repeat(g['4']):'-'}`;
+              
+              body += `${row1}\n${row2}\n${row3}\n\n`;
+              
+              if (chartData.coreNumbers) {
+                  body += `Mulank (Psychic): ${chartData.coreNumbers.mulank}\n`;
+                  body += `Bhagyank (Destiny): ${chartData.coreNumbers.bhagyank}\n\n`;
+              }
+          }
+          // Astrology Planets
+          else if (chartData.planets) {
+              body += `[ PLANETARY POSITIONS ]\n`;
+              chartData.planets.forEach((p: any) => {
+                  body += `${p.name.padEnd(8)}: ${p.signName} in House ${p.house}\n`;
+              });
+              body += `\n`;
+          }
+          // Vedic Metrics (Doshas/Elements)
+          else if (chartData.vedicMetrics) {
+               body += `[ ENERGY BALANCE ]\n`;
+               chartData.vedicMetrics.forEach((m: any) => {
+                   body += `${m.label}: ${m.value}%\n`;
+               });
+               body += `\n`;
+          }
+      }
+
+      // --- 2. KEY INSIGHTS (CLEANED) ---
+      body += `[ MYSTICAL INSIGHTS ]\n`;
+      // Remove Markdown headers and bolding
+      const cleanReading = reading.replace(/\*\*/g, '').replace(/###/g, '');
+      const lines = cleanReading.split('\n').filter(line => line.trim().length > 0);
+      
+      // Take first 10 significant lines or until character limit
+      let summary = "";
+      for (const line of lines) {
+          if ((summary + line).length < 1500) {
+              summary += line + '\n\n';
+          } else {
+              summary += '...\n(Open app to read full report)';
+              break;
+          }
+      }
+      body += summary;
+
+      body += `\n\nOm Shanti,\nGlyph Circle AI`;
+
+      const subject = encodeURIComponent(`🔮 ${title} - Your Report`);
+      const mailtoLink = `mailto:?subject=${subject}&body=${encodeURIComponent(body)}`;
+      
+      window.location.href = mailtoLink;
   };
 
   return (
@@ -411,10 +474,10 @@ const FullReport: React.FC<FullReportProps> = ({ reading, title, subtitle, image
               </div>
               
               <div className="w-full">
-                 {/* Vedic Image or Chart */}
+                 {/* Vedic Image or Chart - UNIVERSAL DISPLAY */}
                  {imageUrl && (
-                     <div className="mb-6 flex justify-center">
-                         <img src={imageUrl} alt="Chart" className="rounded-lg border border-amber-500/20 shadow-lg max-h-64 object-cover" />
+                     <div className="mb-6 h-64 w-full feature-image-container rounded-lg border border-amber-500/20">
+                         <img src={imageUrl} alt="Chart" className="dynamic-image" />
                      </div>
                  )}
 

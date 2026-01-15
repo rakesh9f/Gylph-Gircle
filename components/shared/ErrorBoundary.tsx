@@ -1,5 +1,4 @@
-
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import React, { ErrorInfo, ReactNode } from 'react';
 import Card from './Card';
 import Button from './Button';
 
@@ -12,7 +11,7 @@ interface State {
   error: Error | null;
 }
 
-class ErrorBoundary extends Component<Props, State> {
+class ErrorBoundary extends React.Component<Props, State> {
   public state: State = {
     hasError: false,
     error: null,
@@ -34,7 +33,7 @@ class ErrorBoundary extends Component<Props, State> {
   public render(): ReactNode {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen flex items-center justify-center p-6 bg-midnight">
+        <div className="min-h-screen flex items-center justify-center p-6 bg-gray-900">
           <Card className="max-w-md w-full border-red-500/30 shadow-[0_0_50px_rgba(220,38,38,0.2)]">
             <div className="p-8 text-center">
               <div className="mb-6 inline-block p-4 rounded-full bg-red-900/20 border border-red-500/40">

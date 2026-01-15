@@ -10,8 +10,11 @@ import Footer from './components/Footer';
 import Remedy from './components/Remedy';
 import FaceReading from './components/FaceReading';
 import DreamAnalysis from './components/DreamAnalysis';
+import Matchmaking from './components/Matchmaking';
 import AdminDashboard from './components/AdminDashboard';
 import AdminConfig from './components/AdminConfig';
+import AdminCloudConfig from './components/AdminCloudConfig';
+import AdminPaymentConfig from './components/AdminPaymentConfig';
 import AdminDB from './components/AdminDB';
 import MasterLogin from './components/MasterLogin';
 import RevenueDashboard from './components/RevenueDashboard';
@@ -33,6 +36,8 @@ import ReferralProgram from './components/ReferralProgram';
 import Leaderboard from './components/Leaderboard';
 import LanguageSwitcher from './components/LanguageSwitcher';
 import GamificationHUD from './components/GamificationHUD';
+import ContextDbNavigator from './components/ContextDbNavigator';
+import { useTheme } from './context/ThemeContext';
 
 // Protected Route Wrapper for Standard Users
 interface ProtectedRouteProps {
@@ -48,6 +53,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 
 function App() {
   const { isAuthenticated, logout, user } = useAuth();
+  const { currentTheme } = useTheme();
   const location = useLocation();
 
   useEffect(() => {
@@ -63,18 +69,20 @@ function App() {
     <AccessibilityProvider>
       <AnalyticsProvider>
         <PushNotifications>
-          <div className="bg-midnight min-h-screen text-amber-50 flex flex-col font-lora overflow-x-hidden selection:bg-neon-magenta selection:text-white transition-all duration-300">
+          <div className={`${currentTheme.cssClass} min-h-screen text-amber-50 flex flex-col font-lora overflow-x-hidden selection:bg-neon-magenta selection:text-white transition-all duration-500`}>
             {showLayout && <Header onLogout={logout} />}
             
             <div className="fixed top-20 right-4 z-50 md:top-4 md:right-32">
                 <LanguageSwitcher />
             </div>
 
+            {/* Global Features */}
             {isAuthenticated && (
                <>
                  <DailyReminder />
                  <BadgeCounter />
                  <LargeTextMode />
+                 <ContextDbNavigator /> {/* Injected Context DB Navigator */}
                  {!isAdminPage && <GamificationHUD />}
                  {user?.email === 'rocky@glyph.co' && <ABTestStatus />}
                  
@@ -89,6 +97,20 @@ function App() {
             )}
 
             <main className={`flex-grow ${showLayout ? 'container mx-auto px-4 py-8' : ''}`} role="main">
+              {/* Daily Panchang Widget (Only on Home) */}
+              {location.pathname === '/home' && isAuthenticated && (
+                  <div className="bg-gray-900/50 border border-amber-500/20 rounded-lg p-3 mb-6 flex justify-between items-center text-xs text-amber-200/80 animate-fade-in-up">
+                      <div>
+                          <span className="text-amber-500 font-bold uppercase tracking-widest mr-2">Today's Panchang</span>
+                          <span>{new Date().toLocaleDateString(undefined, {weekday: 'long', day: 'numeric', month: 'short'})}</span>
+                      </div>
+                      <div className="hidden sm:block">
+                          <span className="mr-4">🌙 Moon: <strong>Aries</strong></span>
+                          <span>⏳ Rahu Kaal: <strong>10:30 - 12:00</strong></span>
+                      </div>
+                  </div>
+              )}
+
               <Routes>
                 {/* 
                    LANDING PAGE LOGIC:
@@ -105,6 +127,8 @@ function App() {
                 <Route path="/master-login" element={<MasterLogin />} />
                 <Route path="/admin/dashboard" element={<AdminGuard><AdminDashboard /></AdminGuard>} />
                 <Route path="/admin/config" element={<AdminGuard><AdminConfig /></AdminGuard>} />
+                <Route path="/admin/cloud" element={<AdminGuard><AdminCloudConfig /></AdminGuard>} />
+                <Route path="/admin/payments" element={<AdminGuard><AdminPaymentConfig /></AdminGuard>} />
                 <Route path="/admin/revenue" element={<AdminGuard><RevenueDashboard /></AdminGuard>} />
                 <Route path="/admin/db/:table" element={<AdminGuard><AdminDB /></AdminGuard>} />
 
@@ -116,6 +140,7 @@ function App() {
                 <Route path="/tarot" element={<ProtectedRoute><Tarot /></ProtectedRoute>} />
                 <Route path="/face-reading" element={<ProtectedRoute><FaceReading /></ProtectedRoute>} />
                 <Route path="/dream-analysis" element={<ProtectedRoute><DreamAnalysis /></ProtectedRoute>} />
+                <Route path="/matchmaking" element={<ProtectedRoute><Matchmaking /></ProtectedRoute>} />
                 <Route path="/remedy" element={<ProtectedRoute><Remedy /></ProtectedRoute>} />
                 <Route path="/store" element={<ProtectedRoute><Store /></ProtectedRoute>} />
                 <Route path="/referrals" element={<ProtectedRoute><ReferralProgram /></ProtectedRoute>} />

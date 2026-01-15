@@ -101,7 +101,7 @@ const TarotCard: React.FC<TarotCardProps> = ({ card, isSelected, onClick, index 
         aspect-[2/3] 
         perspective-1000 z-10 
         transition-all duration-500 ease-out
-        ${isSelected ? 'scale-100 z-40' : 'hover:-translate-y-4 hover:z-30 hover:scale-105'}
+        ${isSelected ? 'scale-100 z-40' : 'hover:-translate-y-2 hover:z-30 hover:scale-105'}
       `}
       dir={isRTL ? 'rtl' : 'ltr'}
     >
@@ -130,9 +130,9 @@ const TarotCard: React.FC<TarotCardProps> = ({ card, isSelected, onClick, index 
             
             {/* Center Eye Emblem */}
             <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-16 h-16 rounded-full border border-amber-500/30 flex items-center justify-center relative">
+                <div className="w-1/3 aspect-square rounded-full border border-amber-500/30 flex items-center justify-center relative">
                      <div className="absolute inset-0 border border-amber-500/10 rounded-full animate-ping opacity-30"></div>
-                     <span className="text-2xl filter drop-shadow-[0_0_5px_rgba(245,158,11,0.8)] opacity-80">👁️</span>
+                     <span className="text-[150%] filter drop-shadow-[0_0_5px_rgba(245,158,11,0.8)] opacity-80">👁️</span>
                 </div>
             </div>
 
@@ -151,21 +151,21 @@ const TarotCard: React.FC<TarotCardProps> = ({ card, isSelected, onClick, index 
         <div 
           className={`
             absolute inset-0 w-full h-full rounded-xl overflow-hidden rotate-y-180 backface-hidden
-            flex flex-col items-center justify-between p-3
+            flex flex-col items-center justify-between p-2 sm:p-3
             border-2 ${theme.border}
             ${theme.bgGradient}
             ${theme.glow}
           `}
         >
           {/* Header: Number */}
-          <div className={`w-full flex justify-between px-1.5 pt-1 font-cinzel text-[10px] sm:text-xs font-bold ${theme.accent} opacity-80`}>
+          <div className={`w-full flex justify-between px-1 pt-1 font-cinzel text-[10px] sm:text-xs font-bold ${theme.accent} opacity-80`}>
               <span>{card.number.split(' ')[0]}</span>
               {card.type === 'Major' && <span>M</span>}
           </div>
 
           {/* CRYSTAL BALL ANIMATION - SCALED TO CARD WIDTH */}
-          <div className="relative flex-grow flex items-center justify-center w-full">
-             <div className="relative w-[75%] aspect-square flex items-center justify-center">
+          <div className="relative flex-grow flex items-center justify-center w-full min-h-0">
+             <div className="relative w-[80%] aspect-square flex items-center justify-center max-h-full">
                  {/* Orb Glow */}
                  <div className={`absolute inset-0 rounded-full ${theme.orb} blur-xl animate-pulse`}></div>
                  
@@ -174,10 +174,11 @@ const TarotCard: React.FC<TarotCardProps> = ({ card, isSelected, onClick, index 
                      {/* Mist */}
                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-50"></div>
                      
-                     {/* Icon - Responsive Text Size */}
-                     <span className="relative z-10 text-[3rem] sm:text-[4rem] md:text-[5rem] filter drop-shadow-lg transform transition-transform duration-700 leading-none">
-                        {theme.icon}
-                     </span>
+                     {/* Icon - Responsive Text Size using vw/percent/contain strategies via CSS or dynamic calc */}
+                     <div className="relative z-10 w-full h-full flex items-center justify-center filter drop-shadow-lg transform transition-transform duration-700 leading-none">
+                        {/* SVG or Emoji Container */}
+                        <span className="text-[3em] sm:text-[4em] md:text-[5em]">{theme.icon}</span>
+                     </div>
                      
                      {/* Reflection */}
                      <div className="absolute top-[15%] left-[20%] w-[20%] h-[10%] bg-white/30 rounded-full blur-[2px] rotate-[-45deg]"></div>
@@ -186,14 +187,15 @@ const TarotCard: React.FC<TarotCardProps> = ({ card, isSelected, onClick, index 
           </div>
 
           {/* Footer: Name */}
-          <div className="w-full text-center pb-1">
+          <div className="w-full text-center pb-1 flex-shrink-0">
               <div className={`
-                w-full py-1.5 
+                w-full py-1 
                 bg-black/30 backdrop-blur-md rounded border-t ${theme.border}
-                text-amber-50 font-cinzel font-bold text-[10px] sm:text-xs tracking-wide
-                truncate px-2
+                text-amber-50 font-cinzel font-bold text-[9px] sm:text-[10px] md:text-xs tracking-wide
+                flex items-center justify-center
+                px-1 min-h-[1.5rem]
               `}>
-                {translatedName}
+                <span className="truncate w-full">{translatedName}</span>
               </div>
           </div>
         </div>

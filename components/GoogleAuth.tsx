@@ -1,19 +1,21 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 // 🚨 FAKE GOOGLE LOGIN (No API Keys Needed)
 // This solves the 401 invalid_client error instantly.
 
 const GoogleAuth: React.FC = () => {
   const { googleLogin } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
 
   const handleFakeLogin = async () => {
     setLoading(true);
     
     // Simulate network delay
-    setTimeout(() => {
+    setTimeout(async () => {
         const fakeUser = {
             email: 'rakesh9f@gmail.com', // 👑 This will be AUTO-ADMIN
             name: 'Rakesh F (Google)',
@@ -21,8 +23,16 @@ const GoogleAuth: React.FC = () => {
         };
 
         console.log("✅ FAKE GOOGLE LOGIN SUCCESS:", fakeUser);
-        googleLogin(fakeUser.email, fakeUser.name, fakeUser.sub);
+        await googleLogin(fakeUser.email, fakeUser.name, fakeUser.sub);
         setLoading(false);
+
+        // Check for admin session immediately after login
+        const adminSession = localStorage.getItem('glyph_admin_session');
+        if (adminSession) {
+            navigate('/admin/dashboard');
+        } else {
+            navigate('/home');
+        }
     }, 800);
   };
 

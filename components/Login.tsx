@@ -1,9 +1,8 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import Button from './shared/Button';
-import Card from './shared/Card';
 import { useAuth } from '../context/AuthContext';
+import { useDb } from '../hooks/useDb';
 import { useTranslation } from '../hooks/useTranslation';
 import GoogleAuth from './GoogleAuth';
 
@@ -15,15 +14,36 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const { login, error: authError } = useAuth();
+  const { db } = useDb();
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const [logoImage, setLogoImage] = useState<string>('');
+
+  useEffect(() => {
+      // Fetch logo images from DB
+      const logos = db.image_assets?.filter((img: any) => img.tags?.includes('login_logo') || img.id.startsWith('logo_')) || [];
+      if (logos.length > 0) {
+          const random = logos[Math.floor(Math.random() * logos.length)];
+          setLogoImage(random.path);
+      } else {
+          // Fallback if DB hasn't synced new assets yet
+          setLogoImage('https://images.unsplash.com/photo-1614730375494-071782d3843f?q=80&w=400');
+      }
+  }, [db]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
         await login(email, password);
         if (onLoginSuccess) onLoginSuccess(email);
-        navigate('/home');
+        
+        // Check for admin session to redirect appropriately
+        const adminSession = localStorage.getItem('glyph_admin_session');
+        if (adminSession) {
+            navigate('/admin/dashboard');
+        } else {
+            navigate('/home');
+        }
     } catch (err) {
         // Error handled in UI via authError
     }
@@ -34,6 +54,15 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
       <div className="w-full max-w-md bg-transparent">
         <div className="p-4 sm:p-8">
           <div className="text-center mb-12">
+             {logoImage && (
+                 <div className="mx-auto w-24 h-24 mb-6 rounded-full p-1 bg-gradient-to-tr from-amber-500 to-purple-600 shadow-[0_0_30px_rgba(245,158,11,0.4)] animate-pulse-glow">
+                     <img 
+                        src={logoImage} 
+                        alt="Mystic Symbol" 
+                        className="w-full h-full object-cover rounded-full border-2 border-black" 
+                     />
+                 </div>
+             )}
              <h1 className="text-4xl sm:text-5xl font-cinzel font-bold text-amber-500 tracking-wide mb-2">GLYPHCIRCLE</h1>
              <p className="text-gray-400 font-lora italic text-lg">enterCircle</p>
           </div>

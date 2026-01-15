@@ -237,8 +237,8 @@ const Tarot: React.FC = () => {
                 style={isAnimationFlying ? {
                     top: '50%',
                     left: '50%',
-                    width: '18rem', // w-72 approx
-                    height: '27rem',
+                    width: '12rem', // Reduced from 18rem for mobile safety
+                    height: '18rem',
                     transform: 'translate(-50%, -50%) scale(1.1)'
                 } : {
                     top: animatingCard.startRect.top,
@@ -258,53 +258,78 @@ const Tarot: React.FC = () => {
         )}
 
         {(isLoading || selectedCard) && !animatingCard && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in-up">
-              <Card className="max-w-2xl w-full max-h-[90vh] overflow-y-auto border-amber-400/40 shadow-2xl bg-gray-900/95">
-                  <div className="p-6 sm:p-8 relative">
-                      <button onClick={handleCloseModal} className="absolute top-4 right-4 text-amber-500 hover:text-white transition-colors z-20"><svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-fade-in-up">
+              <Card className="max-w-4xl w-full max-h-[90vh] overflow-y-auto border-amber-400/40 shadow-2xl bg-gray-900/95 custom-scrollbar">
+                  <div className="p-4 sm:p-8 relative">
+                      <button onClick={handleCloseModal} className="absolute top-2 right-2 sm:top-4 sm:right-4 text-amber-500 hover:text-white transition-colors z-20"><svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
 
-                      <div className="flex flex-col items-center">
-                          {selectedCard && (
-                              <div className="w-56 sm:w-72 aspect-[2/3] mb-8 transform hover:scale-105 transition-transform duration-700">
-                                <TarotCard 
-                                    card={selectedCard} 
-                                    index={0} 
-                                    isSelected={true} // Now flip it to show face
-                                    onClick={() => {}} 
-                                />
-                              </div>
-                          )}
+                      {/* Modal Content - Responsive Layout */}
+                      <div className="flex flex-col md:flex-row items-center md:items-start gap-6 md:gap-10">
                           
-                          {isLoading && <ProgressBar progress={progress} message="Interpreting the Card..." estimatedTime="Approx. 5 seconds" />}
-                          {error && <p className="text-red-400 text-center mb-4">{error}</p>}
-                          
-                          {(reading || error) && selectedCard && !isLoading && (
-                              <div className="text-center space-y-6 w-full animate-fade-in-up">
-                                  {!isPaid ? (
-                                    <>
-                                        <div>
-                                            <h3 className="text-3xl font-bold text-amber-300 mb-2 font-cinzel">{selectedCard.name}</h3>
-                                            <div className="text-amber-500 text-sm font-bold tracking-[0.3em] uppercase mb-6">{selectedCard.type} Arcana</div>
-                                        </div>
-                                        <div className="relative text-amber-100 leading-relaxed font-lora text-lg italic bg-black/40 p-6 rounded-lg border border-amber-500/20 shadow-inner">
-                                            {reading.replace(/#/g, '').replace(/\*\*/g, '').split('\n')[0]}...
-                                        </div>
-                                        <div className="pt-6 w-full flex flex-col gap-2 items-center">
-                                            <Button onClick={handleReadMore} className="w-full sm:w-auto px-12 bg-gradient-to-r from-amber-600 to-maroon-700 border-amber-400">{t('readMore')}</Button>
-                                            {isAdmin && <button onClick={() => setIsPaid(true)} className="text-xs text-amber-500 hover:text-amber-300 underline">👑 Admin Skip</button>}
-                                        </div>
-                                    </>
-                                  ) : (
-                                    <FullReport 
-                                        reading={reading} 
-                                        title={selectedCard.name}
-                                        subtitle={`${selectedCard.type} Arcana • Vedic Insight`}
-                                        imageUrl={reportImage}
-                                        chartData={chartData}
+                          {/* Left: Card Visual */}
+                          <div className="flex-shrink-0 flex justify-center w-full md:w-auto">
+                              {selectedCard ? (
+                                  <div className="w-48 sm:w-56 md:w-64 aspect-[2/3] transform transition-transform duration-700">
+                                    <TarotCard 
+                                        card={selectedCard} 
+                                        index={0} 
+                                        isSelected={true} 
+                                        onClick={() => {}} 
                                     />
-                                  )}
-                              </div>
-                          )}
+                                  </div>
+                              ) : (
+                                  <div className="w-48 sm:w-64 aspect-[2/3] bg-white/5 rounded-xl animate-pulse"></div>
+                              )}
+                          </div>
+                          
+                          {/* Right: Reading Content */}
+                          <div className="flex-grow w-full">
+                              {isLoading && (
+                                <div className="py-8">
+                                    <ProgressBar progress={progress} message="Interpreting the Card..." estimatedTime="Approx. 5 seconds" />
+                                </div>
+                              )}
+                              
+                              {error && <p className="text-red-400 text-center mb-4">{error}</p>}
+                              
+                              {(reading || error) && selectedCard && !isLoading && (
+                                  <div className="text-center md:text-left space-y-4 w-full animate-fade-in-up">
+                                      {!isPaid ? (
+                                        <>
+                                            <div>
+                                                <h3 className="text-2xl sm:text-3xl font-bold text-amber-300 mb-1 font-cinzel">{selectedCard.name}</h3>
+                                                <div className="text-amber-500 text-xs font-bold tracking-[0.3em] uppercase mb-4">{selectedCard.type} Arcana</div>
+                                            </div>
+                                            
+                                            <div className="relative text-amber-100 leading-relaxed font-lora text-sm sm:text-base italic bg-black/40 p-4 sm:p-6 rounded-lg border border-amber-500/20 shadow-inner text-left max-h-60 overflow-y-auto custom-scrollbar">
+                                                {reading.replace(/#/g, '').replace(/\*\*/g, '').split('\n').map((line, i) => (
+                                                    <p key={i} className="mb-2">{line}</p>
+                                                ))}
+                                            </div>
+                                            
+                                            <div className="pt-4 w-full flex flex-col sm:flex-row gap-3 justify-center md:justify-start">
+                                                <Button onClick={handleReadMore} className="w-full sm:w-auto px-8 bg-gradient-to-r from-amber-600 to-maroon-700 border-amber-400 text-sm">
+                                                    {t('readMore')}
+                                                </Button>
+                                                {isAdmin && (
+                                                    <button onClick={() => setIsPaid(true)} className="text-xs text-amber-500 hover:text-amber-300 underline self-center">
+                                                        👑 Admin Skip
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </>
+                                      ) : (
+                                        <FullReport 
+                                            reading={reading} 
+                                            title={selectedCard.name}
+                                            subtitle={`${selectedCard.type} Arcana • Vedic Insight`}
+                                            imageUrl={reportImage}
+                                            chartData={chartData}
+                                        />
+                                      )}
+                                  </div>
+                              )}
+                          </div>
                       </div>
                   </div>
               </Card>

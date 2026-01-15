@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+
+import React, { useState, useEffect } from 'react';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useDb } from '../hooks/useDb';
 import Card from './shared/Card';
 import Modal from './shared/Modal';
@@ -7,35 +8,78 @@ import Button from './shared/Button';
 
 const AdminDB: React.FC = () => {
   const { table } = useParams<{ table: string }>();
-  const { db, toggleStatus, createEntry } = useDb();
+  const [searchParams] = useSearchParams(); 
+  const { db, toggleStatus, createEntry, updateEntry, refresh } = useDb();
   const [searchTerm, setSearchTerm] = useState('');
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [newEntry, setNewEntry] = useState<Record<string, string>>({});
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [formData, setFormData] = useState<Record<string, string>>({});
+  const [editingId, setEditingId] = useState<string | number | null>(null);
 
   const tableName = table || 'users';
-  // Fallback to empty array if table doesn't exist to prevent crash
-  const data = db[tableName as keyof typeof db] || [];
+  const data = db[tableName] || [];
 
-  const filteredData = data.filter(record => 
+  // Ensure fresh data on load
+  useEffect(() => {
+      refresh();
+  }, [tableName, refresh]);
+
+  // Check for auto-open create action
+  useEffect(() => {
+      if (searchParams.get('create') === 'true') {
+          setIsCreateModalOpen(true);
+          setFormData({});
+      }
+  }, [searchParams]);
+
+  const filteredData = data.filter((record: any) => 
     JSON.stringify(record).toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Get all unique keys from data to form headers, fallback to basic if empty
   const headers: string[] = data.length > 0 
     ? Array.from(new Set(data.flatMap((record: any) => Object.keys(record))))
-    : ['id', 'status', 'name', 'description']; // Default schema guess
+    : ['id', 'status', 'name'];
 
-  // Fields to exclude from the Create Form
   const readOnlyFields = ['id', 'created_at'];
 
-  const handleCreateChange = (key: string, value: string) => {
-    setNewEntry(prev => ({ ...prev, [key]: value }));
+  // Handle Form Inputs
+  const handleFormChange = (key: string, value: string) => {
+    setFormData(prev => ({ ...prev, [key]: value }));
   };
 
-  const handleSubmitCreate = () => {
-      createEntry(tableName, newEntry);
-      setIsModalOpen(false);
-      setNewEntry({});
+  // --- CREATE LOGIC ---
+  const openCreateModal = () => {
+      setFormData({});
+      setIsCreateModalOpen(true);
+  };
+
+  const submitCreate = () => {
+      createEntry(tableName, formData);
+      setIsCreateModalOpen(false);
+      setFormData({});
+  };
+
+  // --- EDIT LOGIC ---
+  const openEditModal = (record: any) => {
+      const editableData: Record<string, string> = {};
+      Object.keys(record).forEach(key => {
+          if (!readOnlyFields.includes(key)) {
+              const val = record[key];
+              editableData[key] = typeof val === 'object' ? JSON.stringify(val) : String(val);
+          }
+      });
+      setFormData(editableData);
+      setEditingId(record.id);
+      setIsEditModalOpen(true);
+  };
+
+  const submitEdit = () => {
+      if (editingId) {
+          updateEntry(tableName, editingId, formData);
+          setIsEditModalOpen(false);
+          setEditingId(null);
+          setFormData({});
+      }
   };
 
   return (
@@ -44,18 +88,19 @@ const AdminDB: React.FC = () => {
             <div className="flex flex-col md:flex-row items-center justify-between mb-6 gap-4">
                 <div className="flex items-center gap-4">
                     <Link to="/admin/config" className="text-blue-400 hover:underline">&larr; Back to Panel</Link>
-                    <h1 className="text-2xl font-bold text-white capitalize">{tableName}</h1>
+                    <h1 className="text-2xl font-bold text-white capitalize">{tableName.replace(/_/g, ' ')}</h1>
+                    <span className="bg-blue-900 text-blue-200 px-2 py-1 rounded text-xs">SQLite Active</span>
                 </div>
                 <div className="flex items-center gap-4 w-full md:w-auto">
                     <input 
                         type="text" 
-                        placeholder="Search records..." 
+                        placeholder="SQL Search..." 
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="bg-gray-800 border border-gray-600 rounded px-4 py-2 text-white focus:outline-none focus:border-blue-500 flex-grow"
                     />
                     <button 
-                        onClick={() => setIsModalOpen(true)}
+                        onClick={openCreateModal}
                         className="bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-4 rounded shadow-lg transition-colors"
                     >
                         + New Entry
@@ -75,29 +120,30 @@ const AdminDB: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredData.map((row: any, i) => (
+                            {filteredData.map((row: any, i: number) => (
                                 <tr key={i} className="hover:bg-gray-700/50 border-b border-gray-700 last:border-0 transition-colors">
                                     {headers.map(h => (
                                         <td key={h} className="p-3 text-xs truncate max-w-[200px]" title={String(row[h])}>
                                             {(h.includes('image') || h.includes('url') || String(row[h]).startsWith('http')) ? (
-                                                <a 
-                                                    href={String(row[h])} 
-                                                    target="_blank" 
-                                                    rel="noopener noreferrer" 
-                                                    className="text-blue-400 hover:text-blue-300 underline flex items-center gap-1"
-                                                >
-                                                    <span className="text-lg">🔗</span> 
-                                                    {h.includes('image') ? 'View Image' : 'Link'}
-                                                </a>
+                                                <div className="flex items-center gap-2">
+                                                    {h.includes('image') && <img src={String(row[h])} alt="preview" className="w-6 h-6 object-cover rounded" />}
+                                                    <a href={String(row[h])} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 underline">Link</a>
+                                                </div>
                                             ) : (
-                                                String(row[h])
+                                                typeof row[h] === 'object' ? JSON.stringify(row[h]) : String(row[h])
                                             )}
                                         </td>
                                     ))}
-                                    <td className="p-3 text-right sticky right-0 bg-gray-800/50 backdrop-blur-sm">
+                                    <td className="p-3 text-right sticky right-0 bg-gray-800/50 backdrop-blur-sm flex gap-2 justify-end">
+                                        <button 
+                                            onClick={() => openEditModal(row)}
+                                            className="px-2 py-1 rounded text-xs font-bold bg-blue-900 text-blue-300 hover:bg-blue-800 border border-blue-700"
+                                        >
+                                            Edit
+                                        </button>
                                         <button 
                                             onClick={() => toggleStatus(tableName, row.id)}
-                                            className={`px-3 py-1 rounded text-xs font-bold transition-colors ${row.status === 'active' ? 'bg-green-900 text-green-300 hover:bg-green-800' : 'bg-red-900 text-red-300 hover:bg-red-800'}`}
+                                            className={`px-2 py-1 rounded text-xs font-bold transition-colors ${row.status === 'active' ? 'bg-green-900 text-green-300 hover:bg-green-800 border border-green-700' : 'bg-red-900 text-red-300 hover:bg-red-800 border border-red-700'}`}
                                         >
                                             {row.status === 'active' ? 'Active' : 'Inactive'}
                                         </button>
@@ -107,7 +153,7 @@ const AdminDB: React.FC = () => {
                             {filteredData.length === 0 && (
                                 <tr>
                                     <td colSpan={headers.length + 1} className="p-8 text-center text-gray-500">
-                                        No records found.
+                                        No records found in DB.
                                     </td>
                                 </tr>
                             )}
@@ -118,7 +164,7 @@ const AdminDB: React.FC = () => {
         </div>
 
         {/* Create Entry Modal */}
-        <Modal isVisible={isModalOpen} onClose={() => setIsModalOpen(false)}>
+        <Modal isVisible={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)}>
             <div className="p-6">
                 <h3 className="text-xl font-bold text-white mb-4 border-b border-gray-700 pb-2">Add New Record</h3>
                 <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
@@ -128,8 +174,8 @@ const AdminDB: React.FC = () => {
                             {key === 'status' ? (
                                 <select 
                                     className="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white focus:border-blue-500"
-                                    value={newEntry[key] || 'active'}
-                                    onChange={e => handleCreateChange(key, e.target.value)}
+                                    value={formData[key] || 'active'}
+                                    onChange={e => handleFormChange(key, e.target.value)}
                                 >
                                     <option value="active">active</option>
                                     <option value="inactive">inactive</option>
@@ -139,17 +185,58 @@ const AdminDB: React.FC = () => {
                                     type="text" 
                                     className="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white focus:border-blue-500"
                                     placeholder={`Enter ${key}`}
-                                    value={newEntry[key] || ''}
-                                    onChange={e => handleCreateChange(key, e.target.value)}
+                                    value={formData[key] || ''}
+                                    onChange={e => handleFormChange(key, e.target.value)}
                                 />
                             )}
                         </div>
                     ))}
                 </div>
                 <div className="mt-6 flex gap-3">
-                    <Button onClick={handleSubmitCreate} className="flex-1 bg-green-700 hover:bg-green-600">Create</Button>
+                    <Button onClick={submitCreate} className="flex-1 bg-green-700 hover:bg-green-600">Create</Button>
                     <button 
-                        onClick={() => setIsModalOpen(false)}
+                        onClick={() => setIsCreateModalOpen(false)}
+                        className="flex-1 bg-gray-700 hover:bg-gray-600 text-white rounded font-bold"
+                    >
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </Modal>
+
+        {/* Edit Entry Modal */}
+        <Modal isVisible={isEditModalOpen} onClose={() => setIsEditModalOpen(false)}>
+            <div className="p-6">
+                <h3 className="text-xl font-bold text-white mb-4 border-b border-gray-700 pb-2">Edit Record</h3>
+                <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+                    {Object.keys(formData).map(key => (
+                        <div key={key}>
+                            <label className="block text-gray-400 text-xs uppercase mb-1">{key}</label>
+                            {key === 'status' ? (
+                                <select 
+                                    className="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white focus:border-blue-500"
+                                    value={formData[key]}
+                                    onChange={e => handleFormChange(key, e.target.value)}
+                                >
+                                    <option value="active">active</option>
+                                    <option value="inactive">inactive</option>
+                                </select>
+                            ) : (
+                                <input 
+                                    type="text" 
+                                    className="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white focus:border-blue-500"
+                                    placeholder={`Enter ${key}`}
+                                    value={formData[key]}
+                                    onChange={e => handleFormChange(key, e.target.value)}
+                                />
+                            )}
+                        </div>
+                    ))}
+                </div>
+                <div className="mt-6 flex gap-3">
+                    <Button onClick={submitEdit} className="flex-1 bg-blue-700 hover:bg-blue-600">Save Changes</Button>
+                    <button 
+                        onClick={() => setIsEditModalOpen(false)}
                         className="flex-1 bg-gray-700 hover:bg-gray-600 text-white rounded font-bold"
                     >
                         Cancel

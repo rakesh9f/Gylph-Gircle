@@ -21,6 +21,10 @@ const CITIES_DB: City[] = [
   { name: "Dubai", state: "Dubai", country: "UAE", lat: 25.2048, lng: 55.2708, tz: "Asia/Dubai" },
   { name: "Singapore", state: "", country: "Singapore", lat: 1.3521, lng: 103.8198, tz: "Asia/Singapore" },
   { name: "Sydney", state: "NSW", country: "Australia", lat: -33.8688, lng: 151.2093, tz: "Australia/Sydney" },
+  { name: "Tokyo", state: "", country: "Japan", lat: 35.6762, lng: 139.6503, tz: "Asia/Tokyo" },
+  { name: "Paris", state: "", country: "France", lat: 48.8566, lng: 2.3522, tz: "Europe/Paris" },
+  { name: "Moscow", state: "", country: "Russia", lat: 55.7558, lng: 37.6173, tz: "Europe/Moscow" },
+  { name: "Los Angeles", state: "CA", country: "USA", lat: 34.0522, lng: -118.2437, tz: "America/Los_Angeles" },
 ];
 
 export const searchCities = (query: string): City[] => {
