@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -10,6 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Lora:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    
     <style>
       body {
         font-family: 'Lora', serif;
@@ -18,106 +18,208 @@
         font-family: 'Cinzel', serif;
       }
     </style>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            mystic: {
-                DEFAULT: '#8B5CF6', // Mystic Purple
-                500: '#8B5CF6',
-                600: '#7C3AED',
-                900: '#4C1D95',
+    
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              mystic: {
+                  DEFAULT: '#8B5CF6',
+                  500: '#8B5CF6',
+                  600: '#7C3AED',
+                  900: '#4C1D95',
+              },
+              gold: {
+                  DEFAULT: '#F59E0B',
+                  400: '#FBBF24',
+                  500: '#F59E0B',
+                  600: '#D97706',
+              },
+              crystal: {
+                  DEFAULT: '#10B981',
+                  500: '#10B981',
+              },
+              midnight: {
+                  DEFAULT: '#0F0F23',
+                  900: '#0F0F23',
+                  800: '#171735',
+              },
+              indigo: {
+                  deep: '#1E1B4B',
+              },
+              neon: {
+                  magenta: '#D946EF',
+                  blue: '#3B82F6',
+              },
+              maroon: {
+                600: '#980000',
+                700: '#800000',
+                800: '#600000',
+                900: '#400000',
+                950: '#2b0000',
+              },
+              amber: {
+                  50: '#fffbeb',
+                  100: '#fef3c7',
+                  200: '#fde68a',
+                  300: '#fcd34d',
+                  400: '#fbbf24',
+                  500: '#f59e0b',
+                  600: '#d97706',
+                  700: '#b45309',
+                  800: '#92400e',
+                  900: '#78350f',
+                  950: '#451a03',
+              },
             },
-            gold: {
-                DEFAULT: '#F59E0B', // Gold Aura
-                400: '#FBBF24',
-                500: '#F59E0B',
-                600: '#D97706',
+            fontFamily: {
+               cinzel: ['Cinzel', 'serif'],
+               lora: ['Lora', 'serif'],
             },
-            crystal: {
-                DEFAULT: '#10B981', // Crystal Green
-                500: '#10B981',
+            animation: {
+              'fade-in-up': 'fadeInUp 1s ease-out forwards',
+              'float': 'float 6s ease-in-out infinite',
+              'pulse-glow': 'pulseGlow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
             },
-            midnight: {
-                DEFAULT: '#0F0F23', // Midnight Blue
-                900: '#0F0F23',
-                800: '#171735',
-            },
-            indigo: {
-                deep: '#1E1B4B', // Deep Indigo (Card Bg)
-            },
-            neon: {
-                magenta: '#D946EF', // Neon Glow
-                blue: '#3B82F6',
-            },
-            maroon: {
-              600: '#980000',
-              700: '#800000',
-              800: '#600000',
-              900: '#400000',
-              950: '#2b0000',
-            },
-            amber: {
-                50: '#fffbeb',
-                100: '#fef3c7',
-                200: '#fde68a',
-                300: '#fcd34d',
-                400: '#fbbf24',
-                500: '#f59e0b',
-                600: '#d97706',
-                700: '#b45309',
-                800: '#92400e',
-                900: '#78350f',
-                950: '#451a03',
-            },
-          },
-          fontFamily: {
-             cinzel: ['Cinzel', 'serif'],
-             lora: ['Lora', 'serif'],
-          },
-          animation: {
-            'fade-in-up': 'fadeInUp 1s ease-out forwards',
-            'float': 'float 6s ease-in-out infinite',
-            'pulse-glow': 'pulseGlow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-          },
-          keyframes: {
-            fadeInUp: {
-              '0%': { opacity: '0', transform: 'translateY(20px)' },
-              '100%': { opacity: '1', transform: 'translateY(0)' },
-            },
-            float: {
-              '0%, 100%': { transform: 'translateY(0)' },
-              '50%': { transform: 'translateY(-10px)' },
-            },
-            pulseGlow: {
-              '0%, 100%': { opacity: '1', boxShadow: '0 0 20px #D946EF' },
-              '50%': { opacity: '0.8', boxShadow: '0 0 10px #8B5CF6' },
+            keyframes: {
+              fadeInUp: {
+                '0%': { opacity: '0', transform: 'translateY(20px)' },
+                '100%': { opacity: '1', transform: 'translateY(0)' },
+              },
+              float: {
+                '0%, 100%': { transform: 'translateY(0)' },
+                '50%': { transform: 'translateY(-10px)' },
+              },
+              pulseGlow: {
+                '0%, 100%': { opacity: '1', boxShadow: '0 0 20px #D946EF' },
+                '50%': { opacity: '0.8', boxShadow: '0 0 10px #8B5CF6' },
+              }
             }
           }
         }
       }
-    }
-  </script>
-  <script type="importmap">
-{
-  "imports": {
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "react": "https://esm.sh/react@^19.2.3",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "@google/genai": "https://esm.sh/@google/genai@^1.35.0",
-    "react-router-dom": "https://esm.sh/react-router-dom@^7.12.0",
-    "uuid": "https://esm.sh/uuid@^13.0.0",
-    "@react-oauth/google": "https://esm.sh/@react-oauth/google@0.12.1",
-    "jwt-decode": "https://esm.sh/jwt-decode@4.0.0",
-    "html2canvas": "https://esm.sh/html2canvas@1.4.1",
-    "jspdf": "https://esm.sh/jspdf@2.5.1"
-  }
-}
-</script>
-</head>
-  <body>
-    <div id="root"></div>
+    </script>
+  </head>
+  <body class="bg-gradient-to-br from-mystic via-indigo-deep to-midnight text-white min-h-screen overflow-x-hidden">
+    
+    <!-- Navigation -->
+    <nav class="fixed top-0 w-full z-50 bg-white/10 backdrop-blur-xl border-b border-white/20">
+      <div class="max-w-6xl mx-auto px-6 py-4">
+        <div class="flex items-center justify-between">
+          <div class="text-2xl font-cinzel bg-gradient-to-r from-gold to-neon-magenta bg-clip-text text-transparent">
+            Glyph Circle
+          </div>
+          <div class="hidden md:flex space-x-8">
+            <a href="#features" class="font-lora hover:text-gold transition-colors">Features</a>
+            <a href="#database" class="font-lora hover:text-gold transition-colors">Database</a>
+            <a href="#ai" class="font-lora hover:text-gold transition-colors">AI Studio</a>
+            <a href="#docs" class="font-lora hover:text-gold transition-colors">Docs</a>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="min-h-screen flex items-center justify-center pt-20 px-6">
+      <div class="max-w-5xl mx-auto text-center animate-fade-in-up">
+        <h1 class="text-6xl md:text-8xl font-cinzel mb-8 bg-gradient-to-r from-gold via-yellow-400 to-neon-magenta bg-clip-text text-transparent drop-shadow-2xl animate-pulse-glow">
+          Glyph Circle
+        </h1>
+        <p class="text-xl md:text-2xl font-lora max-w-3xl mx-auto leading-relaxed opacity-90 mb-12">
+          AI-powered tarot insights, financial analysis, and mystical experiences powered by 
+          <span class="text-gold font-cinzel">sql.js</span>, 
+          <span class="text-crystal font-cinzel">Google GenAI</span>, and 
+          <span class="text-neon-magenta font-cinzel">React 18</span>
+        </p>
+        
+        <div class="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto mb-16">
+          <div class="bg-white/10 backdrop-blur-xl rounded-3xl p-10 border border-white/20 hover:bg-white/20 hover:scale-105 transition-all duration-500 animate-float">
+            <div class="text-4xl font-cinzel text-gold mb-6">🔮</div>
+            <h3 class="text-2xl font-cinzel mb-4 text-gold">Tarot Readings</h3>
+            <p class="font-lora opacity-90">AI-powered mystical insights with crystal-clear guidance</p>
+          </div>
+          
+          <div class="bg-white/10 backdrop-blur-xl rounded-3xl p-10 border border-white/20 hover:bg-white/20 hover:scale-105 transition-all duration-500 animate-float" style="animation-delay: 0.5s">
+            <div class="text-4xl font-cinzel text-crystal mb-6">📈</div>
+            <h3 class="text-2xl font-cinzel mb-4 text-gold">NSE Trading</h3>
+            <p class="font-lora opacity-90">Real-time intraday scanner with financial data visualization</p>
+          </div>
+          
+          <div class="bg-white/10 backdrop-blur-xl rounded-3xl p-10 border border-white/20 hover:bg-white/20 hover:scale-105 transition-all duration-500 animate-float" style="animation-delay: 1s">
+            <div class="text-4xl font-cinzel text-neon-magenta mb-6">🎥</div>
+            <h3 class="text-2xl font-cinzel mb-4 text-gold">Video Generation</h3>
+            <p class="font-lora opacity-90">AI video creation studio with tarot reel automation</p>
+          </div>
+        </div>
+
+        <a href="#start" class="inline-block bg-gradient-to-r from-gold to-neon-magenta hover:from-neon-magenta hover:to-gold text-white font-cinzel text-xl py-6 px-12 rounded-3xl font-bold transform hover:scale-105 hover:shadow-2xl transition-all duration-500 animate-pulse-glow">
+          Launch Mystic Experience ✨
+        </a>
+      </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="py-32 bg-white/5 backdrop-blur-xl">
+      <div class="max-w-6xl mx-auto px-6">
+        <div class="text-center mb-24 animate-fade-in-up">
+          <h2 class="text-5xl md:text-6xl font-cinzel mb-6 bg-gradient-to-r from-mystic to-neon-magenta bg-clip-text text-transparent">
+            Mystical Powers
+          </h2>
+          <p class="text-xl font-lora max-w-2xl mx-auto opacity-90">
+            Advanced AI/ML integration with your full-stack vision
+          </p>
+        </div>
+
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-10">
+          <div class="group bg-white/10 backdrop-blur-xl rounded-3xl p-12 border border-white/20 hover:bg-white/20 hover:scale-105 transition-all duration-700 hover:border-gold/50">
+            <div class="w-20 h-20 bg-gradient-to-r from-gold to-neon-magenta rounded-2xl flex items-center justify-center mb-8 group-hover:rotate-12 transition-transform duration-500 mx-auto">
+              <span class="text-3xl font-cinzel">🧿</span>
+            </div>
+            <h3 class="text-3xl font-cinzel mb-6 text-gold group-hover:text-neon-magenta transition-colors text-center">AI Tarot Engine</h3>
+            <p class="font-lora opacity-90 leading-relaxed text-center text-lg">Deep learning models trained on ancient wisdom, delivering personalized mystical guidance through interactive readings.</p>
+          </div>
+
+          <div class="group bg-white/10 backdrop-blur-xl rounded-3xl p-12 border border-white/20 hover:bg-white/20 hover:scale-105 transition-all duration-700 hover:border-gold/50">
+            <div class="w-20 h-20 bg-gradient-to-r from-crystal to-emerald-400 rounded-2xl flex items-center justify-center mb-8 group-hover:rotate-12 transition-transform duration-500 mx-auto">
+              <span class="text-3xl font-cinzel">📊</span>
+            </div>
+            <h3 class="text-3xl font-cinzel mb-6 text-gold group-hover:text-neon-magenta transition-colors text-center">NSE Scanner</h3>
+            <p class="font-lora opacity-90 leading-relaxed text-center text-lg">Real-time intraday trading analysis with multi-screener dashboard and algorithmic pattern recognition.</p>
+          </div>
+
+          <div class="group bg-white/10 backdrop-blur-xl rounded-3xl p-12 border border-white/20 hover:bg-white/20 hover:scale-105 transition-all duration-700 hover:border-gold/50">
+            <div class="w-20 h-20 bg-gradient-to-r from-mystic to-indigo-deep rounded-2xl flex items-center justify-center mb-8 group-hover:rotate-12 transition-transform duration-500 mx-auto">
+              <span class="text-3xl font-cinzel">🎬</span>
+            </div>
+            <h3 class="text-3xl font-cinzel mb-6 text-gold group-hover:text-neon-magenta transition-colors text-center">VidGen Studio</h3>
+            <p class="font-lora opacity-90 leading-relaxed text-center text-lg">Text-to-video generation powered by cutting-edge diffusion models with tarot reel automation capabilities.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section id="start" class="py-32 text-center">
+      <div class="max-w-4xl mx-auto px-6 animate-fade-in-up">
+        <h2 class="text-5xl md:text-6xl font-cinzel mb-8 bg-gradient-to-r from-gold to-neon-magenta bg-clip-text text-transparent drop-shadow-2xl">
+          Ready to Begin?
+        </h2>
+        <p class="text-xl font-lora max-w-2xl mx-auto mb-12 opacity-90 leading-relaxed">
+          Your full-stack AI/ML platform awaits. sql.js database ready. Google GenAI integration prepared.
+        </p>
+        <div class="grid md:grid-cols-2 gap-8 max-w-3xl mx-auto mb-16">
+          <a href="#" class="group bg-gradient-to-r from-gold to-neon-magenta hover:from-neon-magenta hover:to-gold text-white font-cinzel text-xl py-8 px-12 rounded-3xl font-bold transform hover:scale-105 hover:shadow-2xl transition-all duration-500 bg-clip-padding">
+            Start Tarot Reading
+          </a>
+          <a href="#" class="group bg-white/20 backdrop-blur-xl border-2 border-white/30 hover:border-gold/50 text-white font-cinzel text-xl py-8 px-12 rounded-3xl font-bold transform hover:scale-105 hover:shadow-2xl hover:bg-white/30 transition-all duration-500">
+            Launch Trading Scanner
+          </a>
+        </div>
+        <p class="font-lora opacity-75 text-lg">Built for Artist Village, Maharashtra • Powered by GitHub Pages</p>
+      </div>
+    </section>
+
   </body>
 </html>
