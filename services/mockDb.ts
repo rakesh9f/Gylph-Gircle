@@ -16,13 +16,37 @@ const DB_SESSION_KEY = 'glyph_circle_mock_db';
 export const MOCK_DATABASE: MockDatabase = {
   users: [
     { 
+      id: 'master_admin_001', 
+      name: 'Master Keeper', 
+      role: 'admin', 
+      status: 'active', 
+      email: 'master@gylphcircle.com', 
+      password: 'master123',
+      biometric_id: null, 
+      uses_biometrics: false,
+      credits: 999999
+    },
+    { 
+      id: 'admin_user_002', 
+      name: 'System Admin', 
+      role: 'admin', 
+      status: 'active', 
+      email: 'admin@gylphcircle.com', 
+      password: 'admin123',
+      biometric_id: null, 
+      uses_biometrics: false,
+      credits: 50000
+    },
+    { 
       id: 1, 
       name: 'rocky', 
       role: 'admin', 
       status: 'active', 
       email: 'rocky@glyph.co', 
+      password: 'password',
       biometric_id: null, 
-      uses_biometrics: false 
+      uses_biometrics: false,
+      credits: 100
     },
     { 
       id: 2, 
@@ -30,8 +54,10 @@ export const MOCK_DATABASE: MockDatabase = {
       role: 'admin', 
       status: 'active', 
       email: 'minti@glyph.co', 
+      password: 'password',
       biometric_id: null, 
-      uses_biometrics: false 
+      uses_biometrics: false,
+      credits: 100
     },
     { 
       id: 3, 
@@ -39,8 +65,10 @@ export const MOCK_DATABASE: MockDatabase = {
       role: 'user', 
       status: 'inactive', 
       email: 'test@example.com', 
+      password: 'password',
       biometric_id: null, 
-      uses_biometrics: false 
+      uses_biometrics: false,
+      credits: 0
     },
     { 
       id: 4, 
@@ -48,8 +76,10 @@ export const MOCK_DATABASE: MockDatabase = {
       role: 'user', 
       status: 'active', 
       email: 'jane.d@example.com', 
+      password: 'password',
       biometric_id: null, 
-      uses_biometrics: false 
+      uses_biometrics: false,
+      credits: 50
     },
   ],
   cloud_providers: [
@@ -135,6 +165,14 @@ export const MOCK_DATABASE: MockDatabase = {
   ],
   services: [
     { 
+      id: 'gemstones',
+      name: 'Gemstones & Mantras',
+      description: 'Find your power stone and sacred sound vibrations.',
+      path: '/gemstones',
+      image: 'https://images.unsplash.com/photo-1615485925708-cf05fc797c75?q=80&w=600',
+      status: 'active'
+    },
+    { 
       id: 'dream-analysis', 
       name: 'Dream Analysis', 
       description: 'Decode the symbols of your subconscious and find your lucky numbers.', 
@@ -206,6 +244,17 @@ export const MOCK_DATABASE: MockDatabase = {
       image: 'https://images.unsplash.com/photo-1606214309328-97277873a5a4?q=80&w=600', 
       status: 'active' 
     },
+  ],
+  gemstones: [
+    { id: 'ruby', name: 'Ruby', sanskrit: 'Manikya', planet: 'Sun', zodiac: 'Leo', benefits: 'Leadership, Vitality, Authority', image: 'https://images.unsplash.com/photo-1615485290382-441e4d049cb5?q=80&w=400', status: 'active' },
+    { id: 'pearl', name: 'Pearl', sanskrit: 'Moti', planet: 'Moon', zodiac: 'Cancer', benefits: 'Emotional Balance, Peace, Creativity', image: 'https://images.unsplash.com/photo-1596944924610-2c847163509d?q=80&w=400', status: 'active' },
+    { id: 'coral', name: 'Red Coral', sanskrit: 'Moonga', planet: 'Mars', zodiac: 'Aries, Scorpio', benefits: 'Courage, Energy, Victory', image: 'https://images.unsplash.com/photo-1611085583191-a3b181a88401?q=80&w=400', status: 'active' },
+    { id: 'emerald', name: 'Emerald', sanskrit: 'Panna', planet: 'Mercury', zodiac: 'Gemini, Virgo', benefits: 'Communication, Business, Intellect', image: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?q=80&w=400', status: 'active' },
+    { id: 'yellow_sapphire', name: 'Yellow Sapphire', sanskrit: 'Pukhraj', planet: 'Jupiter', zodiac: 'Sagittarius, Pisces', benefits: 'Wisdom, Prosperity, Marriage', image: 'https://images.unsplash.com/photo-1615484477745-a6310ce85841?q=80&w=400', status: 'active' },
+    { id: 'diamond', name: 'Diamond', sanskrit: 'Heera', planet: 'Venus', zodiac: 'Taurus, Libra', benefits: 'Luxury, Art, Relationship', image: 'https://images.unsplash.com/photo-1599643478518-17488fbbcd75?q=80&w=400', status: 'active' },
+    { id: 'blue_sapphire', name: 'Blue Sapphire', sanskrit: 'Neelam', planet: 'Saturn', zodiac: 'Capricorn, Aquarius', benefits: 'Discipline, Career, Justice', image: 'https://images.unsplash.com/photo-1599643477877-530eb83abc8e?q=80&w=400', status: 'active' },
+    { id: 'hessonite', name: 'Hessonite', sanskrit: 'Gomed', planet: 'Rahu', zodiac: 'Aquarius', benefits: 'Politics, Foreign Travel', image: 'https://images.unsplash.com/photo-1615485500704-8e99099928b3?q=80&w=400', status: 'active' },
+    { id: 'cats_eye', name: 'Cat\'s Eye', sanskrit: 'Lehsunia', planet: 'Ketu', zodiac: 'Pisces', benefits: 'Spirituality, Protection', image: 'https://images.unsplash.com/photo-1573408301185-9146fe634ad0?q=80&w=400', status: 'active' }
   ],
   user_subscriptions: [
     { id: 1, user_id: 3, plan: 'free', ads_enabled: true, status: 'inactive' },

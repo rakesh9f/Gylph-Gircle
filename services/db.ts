@@ -1,12 +1,13 @@
 
 import { v4 as uuidv4 } from 'uuid';
+import { sqliteService } from './sqliteService';
 
-// Types
+// Types (Keep existing types)
 export interface User {
   id: string;
   email: string;
   name: string;
-  password?: string; // Storing plain for emergency recovery as requested
+  password?: string;
   role: 'user' | 'admin';
   credits: number;
   created_at: string;
@@ -34,114 +35,41 @@ export interface Transaction {
     created_at: string;
 }
 
-export interface DatabaseSchema {
-  users: User[];
-  readings: Reading[];
-  transactions: Transaction[];
-}
-
-const DB_KEY = 'glyph_db_nuclear_v1';
-
+// Wrapper class that now bridges logic to sqliteService
 class LocalDatabase {
+  
   constructor() {
-    // We do NOT run nuclearReset in constructor to avoid infinite loops during hot-reload.
-    // It is called explicitly in App.tsx
+    // Note: sqliteService.init() is called by DbContext provider.
+    // Methods here assume init is done or in progress.
   }
 
-  private getDb(): DatabaseSchema {
-    try {
-      const stored = localStorage.getItem(DB_KEY);
-      let db = stored ? JSON.parse(stored) : { users: [], readings: [], transactions: [] };
-      
-      // --- FAILSAFE: Ensure Master Admin Always Exists ---
-      const masterEmail = 'master@gylphcircle.com';
-      if (!db.users.find((u: User) => u.email === masterEmail)) {
-          const masterUser: User = {
-            id: 'admin-1',
-            email: masterEmail,
-            name: 'Master',
-            password: 'master123',
-            role: 'admin',
-            credits: 9999,
-            created_at: new Date().toISOString()
-          };
-          db.users.push(masterUser);
-          this.saveDb(db);
-          console.log("🛡️ DB Service: Master Admin restored automatically.");
-      }
-      
-      return db;
-    } catch (e) {
-      return { users: [], readings: [], transactions: [] };
-    }
-  }
-
-  private saveDb(data: DatabaseSchema) {
-    localStorage.setItem(DB_KEY, JSON.stringify(data));
-  }
-
-  // 💥 NUCLEAR RESET: Wipes DB and Forces Admins
   nuclearReset() {
-    console.log("💥 NUCLEAR DB RESET STARTING...");
-    
-    const admins: User[] = [
-      {
-        id: 'admin-1',
-        email: 'master@gylphcircle.com',
-        name: 'Master',
-        password: 'master123',
-        role: 'admin',
-        credits: 9999,
-        created_at: new Date().toISOString()
-      },
-      {
-        id: 'admin-2',
-        email: 'admin@gylphcircle.com',
-        name: 'Admin',
-        password: 'admin123',
-        role: 'admin',
-        credits: 9999,
-        created_at: new Date().toISOString()
-      }
-    ];
-
-    const freshDB: DatabaseSchema = {
-      users: admins,
-      readings: [],
-      transactions: []
-    };
-
-    this.saveDb(freshDB);
-    
-    console.log("✅ NUCLEAR RESET COMPLETE");
-    console.table(admins);
+    console.warn("Nuclear reset logic now handled by SQLiteService migration checks.");
   }
 
-  // LAYER 1: Standard DB Check
   validateUser(email: string, pass: string): User | null {
-    const db = this.getDb();
-    const user = db.users.find(u => u.email === email && u.password === pass);
-    if (user) return user;
-    return null;
+    const users: User[] = sqliteService.getAll('users');
+    const user = users.find(u => u.email === email && u.password === pass);
+    return user || null;
   }
 
-  // LAYER 2: Check if user exists as admin (ignore password if needed in extreme cases)
   getAdminByEmail(email: string): User | null {
-    const db = this.getDb();
-    return db.users.find(u => u.email === email && u.role === 'admin') || null;
+    const users: User[] = sqliteService.getAll('users');
+    return users.find(u => u.email === email && u.role === 'admin') || null;
   }
 
-  getAllUsers() {
-    return this.getDb().users;
+  getAllUsers(): User[] {
+    return sqliteService.getAll('users');
   }
 
   getUser(id: string): User | undefined {
-    return this.getDb().users.find(u => u.id === id);
+    // getById returns generic object, cast to User
+    return sqliteService.getById('users', id) as User;
   }
 
-  createUser(email: string, name: string, password?: string): User {
-      const db = this.getDb();
-      if (db.users.find(u => u.email === email)) {
+  async createUser(email: string, name: string, password?: string): Promise<User> {
+      const users: User[] = sqliteService.getAll('users');
+      if (users.find(u => u.email === email)) {
           throw new Error("User already exists with this email");
       }
       
@@ -155,15 +83,14 @@ class LocalDatabase {
           created_at: new Date().toISOString()
       };
       
-      db.users.push(newUser);
-      this.saveDb(db);
+      // Await persistence
+      await sqliteService.insert('users', newUser);
       return newUser;
   }
 
-  // Create Google User (Fake Login Support)
-  createGoogleUser(email: string, name: string, googleId: string): User {
-      const db = this.getDb();
-      let user = db.users.find(u => u.email === email);
+  async createGoogleUser(email: string, name: string, googleId: string): Promise<User> {
+      const users: User[] = sqliteService.getAll('users');
+      let user = users.find(u => u.email === email);
       
       if (!user) {
           user = {
@@ -176,67 +103,64 @@ class LocalDatabase {
               password: 'google-auth-user'
           };
           
-          // Auto-Admin for Rakesh
+          // Auto-Admin logic
           if(email === 'rakesh9f@gmail.com') {
               user.role = 'admin';
               user.credits = 99999;
           }
           
-          db.users.push(user);
-          this.saveDb(db);
+          await sqliteService.insert('users', user);
       }
       return user;
   }
 
   getReadings(userId: string): Reading[] {
-      const db = this.getDb();
-      return db.readings.filter(r => r.user_id === userId).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      const readings: Reading[] = sqliteService.getAll('readings');
+      // Note: Filter in memory for simplicity with current generic getAll
+      return readings
+        .filter(r => r.user_id === userId)
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   }
 
-  saveReading(reading: Omit<Reading, 'id' | 'timestamp' | 'is_favorite'>): Reading {
-      const db = this.getDb();
+  // Updated to async to ensure persistence awaits
+  async saveReading(reading: Omit<Reading, 'id' | 'timestamp' | 'is_favorite'>): Promise<Reading> {
       const newReading: Reading = {
           id: uuidv4(),
           timestamp: new Date().toISOString(),
           is_favorite: false,
           ...reading
       };
-      db.readings.push(newReading);
-      this.saveDb(db);
+      await sqliteService.insert('readings', newReading);
       return newReading;
   }
 
-  toggleFavorite(readingId: string): Reading | null {
-      const db = this.getDb();
-      const reading = db.readings.find(r => r.id === readingId);
+  async toggleFavorite(readingId: string): Promise<Reading | null> {
+      const reading = sqliteService.getById('readings', readingId) as Reading;
       if (reading) {
-          reading.is_favorite = !reading.is_favorite;
-          this.saveDb(db);
-          return reading;
+          const newVal = !reading.is_favorite;
+          await sqliteService.update('readings', readingId, { is_favorite: newVal ? 1 : 0 }); // Store boolean as int/bit
+          return { ...reading, is_favorite: newVal };
       }
       return null;
   }
 
-  addCredits(userId: string, amount: number): User {
-      const db = this.getDb();
-      const user = db.users.find(u => u.id === userId);
+  async addCredits(userId: string, amount: number): Promise<User> {
+      const user = this.getUser(userId);
       if (user) {
-          user.credits = (user.credits || 0) + amount;
-          this.saveDb(db);
-          return user;
+          const newCredits = (user.credits || 0) + amount;
+          await sqliteService.update('users', userId, { credits: newCredits });
+          return { ...user, credits: newCredits };
       }
       throw new Error("User not found");
   }
 
-  recordTransaction(transaction: Omit<Transaction, 'id' | 'created_at'>): Transaction {
-      const db = this.getDb();
+  async recordTransaction(transaction: Omit<Transaction, 'id' | 'created_at'>): Promise<Transaction> {
       const newTransaction: Transaction = {
           id: uuidv4(),
           created_at: new Date().toISOString(),
           ...transaction
       };
-      db.transactions.push(newTransaction);
-      this.saveDb(db);
+      await sqliteService.insert('transactions', newTransaction);
       return newTransaction;
   }
 }

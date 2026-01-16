@@ -249,33 +249,41 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setHistory([]);
   }, []);
 
-  const addCredits = useCallback((amount: number) => {
+  const addCredits = useCallback(async (amount: number) => {
     if (user) {
-      const updatedUser = dbService.addCredits(user.id, amount);
-      setUser(prev => prev ? { ...prev, credits: updatedUser.credits } : null);
+      try {
+        const updatedUser = await dbService.addCredits(user.id, amount);
+        setUser(prev => prev ? { ...prev, credits: updatedUser.credits } : null);
+      } catch (error) {
+        console.error("Failed to add credits:", error);
+      }
     }
   }, [user]);
 
-  const saveReading = useCallback((readingData: PendingReading) => {
+  const saveReading = useCallback(async (readingData: PendingReading) => {
     if (user) {
-      const saved = dbService.saveReading({
-        ...readingData,
-        user_id: user.id,
-        paid: true,
-      });
-      setHistory(prev => [saved, ...prev]);
-      
-      // Update Gamification
-      setUser(prev => {
-          if (!prev || !prev.gamification) return prev;
-          const updated = { ...prev };
-          updated.gamification!.readingsCount += 1;
-          updated.gamification!.karma += ACTION_POINTS.READING_COMPLETE;
-          
-          checkSigils(updated);
-          localStorage.setItem(`glyph_gamify_${updated.id}`, JSON.stringify(updated.gamification));
-          return updated;
-      });
+      try {
+        const saved = await dbService.saveReading({
+          ...readingData,
+          user_id: user.id,
+          paid: true,
+        });
+        setHistory(prev => [saved, ...prev]);
+        
+        // Update Gamification
+        setUser(prev => {
+            if (!prev || !prev.gamification) return prev;
+            const updated = { ...prev };
+            updated.gamification!.readingsCount += 1;
+            updated.gamification!.karma += ACTION_POINTS.READING_COMPLETE;
+            
+            checkSigils(updated);
+            localStorage.setItem(`glyph_gamify_${updated.id}`, JSON.stringify(updated.gamification));
+            return updated;
+        });
+      } catch (error) {
+        console.error("Failed to save reading:", error);
+      }
     }
   }, [user]);
 
@@ -286,10 +294,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [pendingReading, user, saveReading]);
 
-  const toggleFavorite = useCallback((readingId: string) => {
-    const updated = dbService.toggleFavorite(readingId);
-    if (updated) {
-      setHistory(prev => prev.map(r => r.id === readingId ? updated : r));
+  const toggleFavorite = useCallback(async (readingId: string) => {
+    try {
+      const updated = await dbService.toggleFavorite(readingId);
+      if (updated) {
+        setHistory(prev => prev.map(r => r.id === readingId ? updated : r));
+      }
+    } catch (error) {
+      console.error("Failed to toggle favorite:", error);
     }
   }, []);
 

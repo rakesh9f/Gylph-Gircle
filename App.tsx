@@ -25,6 +25,7 @@ import Store from './components/Store';
 import AdminGuard from './components/AdminGuard';
 import BackupManager from './components/BackupManager';
 import ReadingHistory from './components/ReadingHistory';
+import GemstoneGuide from './components/GemstoneGuide';
 import { useAuth } from './context/AuthContext';
 import { dbService } from './services/db';
 
@@ -155,6 +156,7 @@ function App() {
                 <Route path="/matchmaking" element={<ProtectedRoute><ErrorBoundary><Matchmaking /></ErrorBoundary></ProtectedRoute>} />
                 <Route path="/remedy" element={<ProtectedRoute><ErrorBoundary><Remedy /></ErrorBoundary></ProtectedRoute>} />
                 <Route path="/store" element={<ProtectedRoute><ErrorBoundary><Store /></ErrorBoundary></ProtectedRoute>} />
+                <Route path="/gemstones" element={<ProtectedRoute><ErrorBoundary><GemstoneGuide /></ErrorBoundary></ProtectedRoute>} />
                 <Route path="/referrals" element={<ProtectedRoute><ReferralProgram /></ProtectedRoute>} />
                 <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
                 

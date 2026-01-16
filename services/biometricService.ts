@@ -64,8 +64,14 @@ export const biometricService = {
         return bufferToBase64(credential.rawId);
       }
       return null;
-    } catch (err) {
-      console.warn("Biometric Registration Failed (Simulation Fallback may apply):", err);
+    } catch (err: any) {
+      // Handle Permissions Policy error specifically
+      if (err.name === 'NotAllowedError' || err.message?.includes('not enabled')) {
+          console.warn("WebAuthn blocked by permissions policy. Ensure 'publickey-credentials-create' is allowed in iframe/headers.");
+          // Return null so UI can handle it gracefully instead of crashing
+          return null; 
+      }
+      console.warn("Biometric Registration Failed:", err);
       throw err;
     }
   },
@@ -95,7 +101,11 @@ export const biometricService = {
       // In a real app, verify signature on server. 
       // For client-only demo, presence of assertion implies local auth success.
       return !!assertion;
-    } catch (err) {
+    } catch (err: any) {
+      if (err.name === 'NotAllowedError' || err.message?.includes('not enabled')) {
+          console.warn("WebAuthn blocked by permissions policy. Ensure 'publickey-credentials-get' is allowed.");
+          throw new Error("Biometric authentication not allowed in this context.");
+      }
       // Don't error aggressively, as this triggers the simulation fallback in Login.tsx
       console.debug("Biometric Verification unavailable:", err);
       throw err;

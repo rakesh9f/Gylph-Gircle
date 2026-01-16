@@ -18,6 +18,14 @@ interface CartItem {
   image?: string;
 }
 
+interface DeliveryDetails {
+  fullName: string;
+  address: string;
+  city: string;
+  zip: string;
+  phone: string;
+}
+
 const Store: React.FC = () => {
   const { db, toggleStatus, createEntry } = useDb();
   const { user } = useAuth();
@@ -30,6 +38,16 @@ const Store: React.FC = () => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [sortOption, setSortOption] = useState('default');
+  
+  // Checkout State
+  const [checkoutStep, setCheckoutStep] = useState<'cart' | 'address'>('cart');
+  const [deliveryDetails, setDeliveryDetails] = useState<DeliveryDetails>({
+      fullName: user?.name || '',
+      address: '',
+      city: '',
+      zip: '',
+      phone: ''
+  });
   
   // Toast State
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -70,6 +88,10 @@ const Store: React.FC = () => {
 
   const cartTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
+  const isAddressValid = useMemo(() => {
+      return Object.values(deliveryDetails).every(val => val.trim().length > 0);
+  }, [deliveryDetails]);
+
   // --- ACTIONS ---
   const addToCart = (item: any) => {
     setCart(prev => {
@@ -104,7 +126,22 @@ const Store: React.FC = () => {
     }));
   };
 
+  const openCart = () => {
+      setCheckoutStep('cart');
+      setIsCartOpen(true);
+  };
+
+  const handleDeliveryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const { name, value } = e.target;
+      setDeliveryDetails(prev => ({ ...prev, [name]: value }));
+  };
+
   const handleCheckout = () => {
+      if (!isAddressValid) {
+          alert("Please fill in all delivery details.");
+          return;
+      }
+
       const { display } = getRegionalPrice(cartTotal);
       openPayment(() => {
           // Success Callback
@@ -113,16 +150,18 @@ const Store: React.FC = () => {
               item_ids: JSON.stringify(cart.map(c => ({ id: c.id, qty: c.quantity }))),
               total: cartTotal,
               description: `Store Order: ${cart.length} items`,
+              delivery_address: JSON.stringify(deliveryDetails),
               status: 'paid'
           };
           
           createEntry('store_orders', orderPayload);
           setCart([]);
           setIsCartOpen(false);
+          setCheckoutStep('cart'); // Reset
           
           // Show Success Message (Simple alert for now, could be a toast)
           if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-          alert("Payment Successful! Your mystical artifacts are being prepared.");
+          alert("Payment Successful! Your mystical artifacts will be shipped to " + deliveryDetails.city);
           
       }, display);
   };
@@ -191,7 +230,7 @@ const Store: React.FC = () => {
 
             {/* Cart Trigger */}
             <button 
-                onClick={() => setIsCartOpen(true)}
+                onClick={openCart}
                 className="relative bg-amber-600 hover:bg-amber-500 p-2 rounded-full text-white shadow-lg transition-transform hover:scale-110"
             >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -298,35 +337,99 @@ const Store: React.FC = () => {
           </Link>
       </div>
 
-      {/* CART MODAL */}
+      {/* CART & CHECKOUT MODAL */}
       <Modal isVisible={isCartOpen} onClose={() => setIsCartOpen(false)}>
-          <div className="p-6 bg-gray-900 max-h-[80vh] flex flex-col">
+          <div className="p-6 bg-gray-900 max-h-[85vh] flex flex-col">
               <div className="flex justify-between items-center mb-6 border-b border-amber-500/30 pb-4">
-                  <h3 className="text-2xl font-cinzel font-bold text-amber-300">Your Cart</h3>
+                  <div className="flex items-center gap-3">
+                      {checkoutStep === 'address' && (
+                          <button onClick={() => setCheckoutStep('cart')} className="text-gray-400 hover:text-white mr-2">←</button>
+                      )}
+                      <h3 className="text-2xl font-cinzel font-bold text-amber-300">
+                          {checkoutStep === 'cart' ? 'Your Cart' : 'Delivery Details'}
+                      </h3>
+                  </div>
                   <button onClick={() => setIsCartOpen(false)} className="text-gray-400 hover:text-white">&times;</button>
               </div>
 
               <div className="flex-grow overflow-y-auto mb-6 pr-2 custom-scrollbar">
-                  {cart.length === 0 ? (
-                      <p className="text-center text-gray-500 py-8">Your spiritual vessel is empty.</p>
+                  {checkoutStep === 'cart' ? (
+                      cart.length === 0 ? (
+                          <p className="text-center text-gray-500 py-8">Your spiritual vessel is empty.</p>
+                      ) : (
+                          <div className="space-y-4">
+                              {cart.map(item => (
+                                  <div key={item.id} className="flex gap-4 items-center bg-black/30 p-3 rounded border border-gray-800">
+                                      <div className="flex-grow">
+                                          <h4 className="font-bold text-amber-100">{item.name}</h4>
+                                          <p className="text-xs text-amber-500">{getRegionalPrice(item.price).display}</p>
+                                      </div>
+                                      <div className="flex items-center gap-3">
+                                          <button onClick={() => updateQuantity(item.id, -1)} className="w-6 h-6 rounded bg-gray-700 hover:bg-gray-600 text-white flex items-center justify-center">-</button>
+                                          <span className="text-sm font-mono w-4 text-center">{item.quantity}</span>
+                                          <button onClick={() => updateQuantity(item.id, 1)} className="w-6 h-6 rounded bg-gray-700 hover:bg-gray-600 text-white flex items-center justify-center">+</button>
+                                      </div>
+                                      <button onClick={() => removeFromCart(item.id)} className="text-red-400 hover:text-red-300 ml-2">
+                                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                      </button>
+                                  </div>
+                              ))}
+                          </div>
+                      )
                   ) : (
-                      <div className="space-y-4">
-                          {cart.map(item => (
-                              <div key={item.id} className="flex gap-4 items-center bg-black/30 p-3 rounded border border-gray-800">
-                                  <div className="flex-grow">
-                                      <h4 className="font-bold text-amber-100">{item.name}</h4>
-                                      <p className="text-xs text-amber-500">{getRegionalPrice(item.price).display}</p>
-                                  </div>
-                                  <div className="flex items-center gap-3">
-                                      <button onClick={() => updateQuantity(item.id, -1)} className="w-6 h-6 rounded bg-gray-700 hover:bg-gray-600 text-white flex items-center justify-center">-</button>
-                                      <span className="text-sm font-mono w-4 text-center">{item.quantity}</span>
-                                      <button onClick={() => updateQuantity(item.id, 1)} className="w-6 h-6 rounded bg-gray-700 hover:bg-gray-600 text-white flex items-center justify-center">+</button>
-                                  </div>
-                                  <button onClick={() => removeFromCart(item.id)} className="text-red-400 hover:text-red-300 ml-2">
-                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                  </button>
+                      <div className="space-y-4 animate-fade-in-up">
+                          <div>
+                              <label className="block text-xs text-gray-400 uppercase mb-1">Full Name *</label>
+                              <input 
+                                  name="fullName"
+                                  value={deliveryDetails.fullName}
+                                  onChange={handleDeliveryChange}
+                                  className="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white focus:border-amber-500"
+                                  placeholder="Recipient Name"
+                              />
+                          </div>
+                          <div>
+                              <label className="block text-xs text-gray-400 uppercase mb-1">Address *</label>
+                              <input 
+                                  name="address"
+                                  value={deliveryDetails.address}
+                                  onChange={handleDeliveryChange}
+                                  className="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white focus:border-amber-500"
+                                  placeholder="Street, House No."
+                              />
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                  <label className="block text-xs text-gray-400 uppercase mb-1">City *</label>
+                                  <input 
+                                      name="city"
+                                      value={deliveryDetails.city}
+                                      onChange={handleDeliveryChange}
+                                      className="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white focus:border-amber-500"
+                                      placeholder="City"
+                                  />
                               </div>
-                          ))}
+                              <div>
+                                  <label className="block text-xs text-gray-400 uppercase mb-1">ZIP / Pin *</label>
+                                  <input 
+                                      name="zip"
+                                      value={deliveryDetails.zip}
+                                      onChange={handleDeliveryChange}
+                                      className="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white focus:border-amber-500"
+                                      placeholder="123456"
+                                  />
+                              </div>
+                          </div>
+                          <div>
+                              <label className="block text-xs text-gray-400 uppercase mb-1">Phone Number *</label>
+                              <input 
+                                  name="phone"
+                                  value={deliveryDetails.phone}
+                                  onChange={handleDeliveryChange}
+                                  className="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white focus:border-amber-500"
+                                  placeholder="+91 99999 99999"
+                              />
+                          </div>
                       </div>
                   )}
               </div>
@@ -336,13 +439,24 @@ const Store: React.FC = () => {
                       <span>Total</span>
                       <span>{getRegionalPrice(cartTotal).display}</span>
                   </div>
-                  <Button 
-                    className="w-full bg-gradient-to-r from-green-700 to-green-900 border-green-500" 
-                    disabled={cart.length === 0} 
-                    onClick={handleCheckout}
-                  >
-                      {cart.length === 0 ? 'Cart Empty' : 'Proceed to Checkout'}
-                  </Button>
+                  
+                  {checkoutStep === 'cart' ? (
+                      <Button 
+                        className="w-full bg-gradient-to-r from-amber-700 to-amber-900 border-amber-500" 
+                        disabled={cart.length === 0} 
+                        onClick={() => setCheckoutStep('address')}
+                      >
+                          {cart.length === 0 ? 'Cart Empty' : 'Proceed to Checkout'}
+                      </Button>
+                  ) : (
+                      <Button 
+                        className="w-full bg-gradient-to-r from-green-700 to-green-900 border-green-500" 
+                        disabled={!isAddressValid}
+                        onClick={handleCheckout}
+                      >
+                          Proceed to Payment
+                      </Button>
+                  )}
               </div>
           </div>
       </Modal>

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 // @ts-ignore
 import { Link } from 'react-router-dom';
@@ -39,17 +40,37 @@ const Home: React.FC = () => {
     return () => clearInterval(timer);
   }, [user]);
 
-  const handleRegisterBiometric = async () => {
+  const handleRegisterBiometric = async (e?: React.MouseEvent) => {
+      if (e) e.stopPropagation();
       if (!user) return;
+      
+      const btn = document.getElementById('bio-setup-btn');
+      if(btn) btn.innerText = "Scanning...";
+      
       try {
+          // Add visual feedback
+          if (navigator.vibrate) navigator.vibrate(50);
+
           const credId = await biometricService.register(user.id, user.name);
+          
           if (credId) {
-              alert("Biometrics Registered Successfully! You can use fingerprint/face ID next time.");
+              if (navigator.vibrate) navigator.vibrate([50, 100]);
+              alert("Biometrics Registered Successfully! You can now log in using fingerprint or Face ID.");
               localStorage.setItem('glyph_bio_registered', 'true');
               setShowBioSetup(false);
+          } else {
+              // This case happens if the user cancels or the device returns nothing but doesn't throw
+              // Or if permission policy blocked it silently returning null
+              alert("Registration incomplete. Please try again.");
+              if(btn) btn.innerText = "Setup";
           }
-      } catch (e) {
-          alert("Registration failed or cancelled.");
+      } catch (err: any) {
+          console.error(err);
+          // Only alert if it's a real error, not just a cancel
+          if (err.name !== 'NotAllowedError' && err.message !== 'The operation was canceled.') {
+             alert(`Registration failed: ${err.message || 'Unknown error'}`);
+          }
+          if(btn) btn.innerText = "Retry";
       }
   };
 
@@ -96,20 +117,23 @@ const Home: React.FC = () => {
             </p>
         </div>
         
-        {/* Biometric Setup Prompt */}
+        {/* Biometric Setup Prompt - Clickable Banner */}
         {showBioSetup && (
             <div className="w-full max-w-md mb-8 animate-fade-in-up">
-                <div className="bg-purple-900/60 border border-purple-500/50 p-4 rounded-xl flex items-center justify-between backdrop-blur-md shadow-[0_0_20px_rgba(139,92,246,0.2)]">
+                <div 
+                    onClick={(e) => handleRegisterBiometric(e)}
+                    className="bg-purple-900/60 hover:bg-purple-900/80 border border-purple-500/50 p-4 rounded-xl flex items-center justify-between backdrop-blur-md shadow-[0_0_20px_rgba(139,92,246,0.2)] cursor-pointer transition-all active:scale-95 group"
+                >
                     <div className="flex items-center gap-3">
                         <span className="text-2xl animate-pulse">👆</span>
                         <div>
-                            <h4 className="text-purple-100 font-bold text-sm">Secure Your Sanctuary</h4>
+                            <h4 className="text-purple-100 font-bold text-sm group-hover:text-purple-50">Secure Your Sanctuary</h4>
                             <p className="text-purple-300 text-xs">Enable fingerprint login for instant access.</p>
                         </div>
                     </div>
                     <button 
-                        onClick={handleRegisterBiometric}
-                        className="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors"
+                        id="bio-setup-btn"
+                        className="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors shadow-lg"
                     >
                         Setup
                     </button>

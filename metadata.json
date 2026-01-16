@@ -2,6 +2,8 @@
   "name": "Glyph Circle",
   "description": "A mystical guide to your destiny. Explore numerology, astrology, tarot, palmistry, and more to uncover the secrets of your life path.",
   "requestFramePermissions": [
-    "camera"
+    "camera",
+    "microphone",
+    "geolocation"
   ]
 }

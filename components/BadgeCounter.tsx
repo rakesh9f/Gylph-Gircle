@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from './PushNotifications';
+import { useNavigate } from 'react-router-dom';
 
 // Defines the PWA App Badge API
 declare global {
@@ -15,6 +16,7 @@ const BadgeCounter: React.FC = () => {
   const { history, user } = useAuth();
   const { permission } = useNotifications();
   const [unreadCount, setUnreadCount] = useState(0);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!user) {
@@ -47,7 +49,11 @@ const BadgeCounter: React.FC = () => {
 
   return (
     <div className="fixed bottom-24 right-6 z-40 animate-bounce pointer-events-none">
-      <div className="relative group pointer-events-auto cursor-pointer" title={`${unreadCount} new readings today`}>
+      <div 
+        className="relative group pointer-events-auto cursor-pointer" 
+        title={`${unreadCount} new readings today`}
+        onClick={() => navigate('/history')}
+      >
         {/* Glow Effect */}
         <div className="absolute -inset-2 bg-gradient-to-r from-amber-500 to-neon-magenta rounded-full blur opacity-40 group-hover:opacity-75 transition duration-500 animate-pulse"></div>
         

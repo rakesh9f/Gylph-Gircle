@@ -55,6 +55,56 @@ export const createSageSession = (contextReading: string, topic: string) => {
     });
 };
 
+export const getGemstoneGuidance = async (name: string, dob: string, intent: string, language: string = 'English'): Promise<any> => {
+    const ai = getAi();
+    const schema = {
+        type: Type.OBJECT,
+        properties: {
+            primaryGem: {
+                type: Type.OBJECT,
+                properties: {
+                    name: { type: Type.STRING },
+                    sanskritName: { type: Type.STRING },
+                    reason: { type: Type.STRING, description: "Why this fits the user's intent & chart" },
+                    wearingMethod: { type: Type.STRING, description: "Finger, Metal, Day" }
+                }
+            },
+            mantra: {
+                type: Type.OBJECT,
+                properties: {
+                    sanskrit: { type: Type.STRING },
+                    pronunciation: { type: Type.STRING },
+                    meaning: { type: Type.STRING },
+                    benefits: { type: Type.STRING }
+                }
+            },
+            fullReading: { type: Type.STRING, description: `Detailed Vedic explanation in ${language}` }
+        },
+        required: ["primaryGem", "mantra", "fullReading"]
+    };
+
+    const prompt = `You are a Vedic Astrologer (Ratna Shastra expert).
+    User: ${name}, DOB: ${dob}.
+    Intent/Goal: "${intent}".
+    
+    1. Recommend the best **Gemstone** based on their likely planetary needs (derived from DOB) and their specific intent.
+    2. Recommend a **Sanskrit Mantra** (Mantra Chikitsa) that aligns with this goal.
+    3. Generate a 'fullReading' in ${language} using bullet points and bold headers.
+    
+    Adhere strictly to Vedic principles.`;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-3-flash-preview',
+            contents: prompt,
+            config: { responseMimeType: "application/json", responseSchema: schema }
+        });
+        return JSON.parse(response.text || "{}");
+    } catch (error) {
+        throw new Error("Failed to generate guidance.");
+    }
+};
+
 export const getPalmReading = async (imageFile: File, language: string = 'English'): Promise<PalmMetricResponse> => {
   const ai = getAi();
   const base64Data = await fileToBase64(imageFile);
