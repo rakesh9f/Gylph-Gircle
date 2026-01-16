@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 // @ts-ignore
 import { Routes, Route, Navigate, useLocation, Link } from 'react-router-dom';
@@ -41,6 +42,8 @@ import GamificationHUD from './components/GamificationHUD';
 import ContextDbNavigator from './components/ContextDbNavigator';
 import { useTheme } from './context/ThemeContext';
 import ErrorBoundary from './components/shared/ErrorBoundary';
+import MobileNavBar from './components/MobileNavBar';
+import { useDevice } from './hooks/useDevice';
 
 // Protected Route Wrapper for Standard Users
 interface ProtectedRouteProps {
@@ -58,6 +61,7 @@ function App() {
   const { isAuthenticated, logout, user } = useAuth();
   const { currentTheme } = useTheme();
   const location = useLocation();
+  const { isMobile, isNative } = useDevice();
 
   useEffect(() => {
     // 💥 NUCLEAR RESET ON MOUNT (Optional: disable for persistent dev state)
@@ -73,9 +77,11 @@ function App() {
       <AnalyticsProvider>
         <PushNotifications>
           <div className={`${currentTheme.cssClass} min-h-screen text-amber-50 flex flex-col font-lora overflow-x-hidden selection:bg-neon-magenta selection:text-white transition-all duration-500`}>
-            {showLayout && <Header onLogout={logout} />}
             
-            <div className="fixed top-20 right-4 z-50 md:top-4 md:right-32">
+            {/* Conditional Header: Simplified on Mobile if Layout is shown */}
+            {showLayout && <Header onLogout={logout} isMobile={isMobile} />}
+            
+            <div className={`fixed z-50 transition-all ${isMobile ? 'top-3 right-3' : 'top-20 right-4 md:top-4 md:right-32'}`}>
                 <LanguageSwitcher />
             </div>
 
@@ -83,13 +89,14 @@ function App() {
             {isAuthenticated && (
                <>
                  <DailyReminder />
-                 <BadgeCounter />
+                 {/* Only show badge counter on desktop or if native app (where app icon badges might be handled differently) */}
+                 {!isMobile && <BadgeCounter />}
                  <LargeTextMode />
                  <ContextDbNavigator /> {/* Injected Context DB Navigator */}
                  {!isAdminPage && <GamificationHUD />}
                  {user?.email === 'rocky@glyph.co' && <ABTestStatus />}
                  
-                 {!isAdminPage && (
+                 {!isAdminPage && !isMobile && (
                     <Link to="/referrals" className="fixed bottom-6 left-6 z-40 animate-pulse-glow group">
                        <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-green-700 rounded-full shadow-[0_0_20px_rgba(34,197,94,0.4)] flex items-center justify-center border-2 border-white/20 transform group-hover:scale-110 transition-transform">
                           <span className="text-2xl">🎁</span>
@@ -99,7 +106,7 @@ function App() {
                </>
             )}
 
-            <main className={`flex-grow ${showLayout ? 'container mx-auto px-4 py-8' : ''}`} role="main">
+            <main className={`flex-grow ${showLayout ? `container mx-auto px-4 ${isMobile ? 'pb-24 pt-4' : 'py-8'}` : ''}`} role="main">
               {/* Daily Panchang Widget (Only on Home) */}
               {location.pathname === '/home' && isAuthenticated && (
                   <div className="bg-gray-900/50 border border-amber-500/20 rounded-lg p-3 mb-6 flex justify-between items-center text-xs text-amber-200/80 animate-fade-in-up">
@@ -156,7 +163,8 @@ function App() {
               </Routes>
             </main>
             
-            {showLayout && <Footer />}
+            {showLayout && isMobile && <MobileNavBar />}
+            {showLayout && !isMobile && <Footer />}
           </div>
         </PushNotifications>
       </AnalyticsProvider>
