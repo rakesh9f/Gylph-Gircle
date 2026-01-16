@@ -1,3 +1,4 @@
+
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 // @ts-ignore
@@ -27,37 +28,38 @@ document.addEventListener('keydown', (e) => {
 });
 
 // 3. PWA SERVICE WORKER KILL SWITCH
-// THIS UNREGISTERS ALL SERVICE WORKERS TO FIX CACHING ISSUES
-if ('serviceWorker' in navigator) {
-  try {
-    navigator.serviceWorker.getRegistrations()
-      .then(registrations => {
-        registrations.forEach(registration => {
-          console.log('💀 Killing Service Worker:', registration);
-          registration.unregister().catch(err => console.warn('Unregister failed', err));
-        });
-      })
-      .catch(error => {
-        console.warn('Failed to get ServiceWorker registrations:', error);
-      });
-  } catch (e) {
-    console.warn('ServiceWorker API access error:', e);
+// Safely wrapped to prevent "Invalid State" errors
+const killServiceWorkers = async () => {
+  if ('serviceWorker' in navigator) {
+    try {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      for (const registration of registrations) {
+        console.log('💀 Killing Service Worker:', registration);
+        await registration.unregister();
+      }
+    } catch (e) {
+      console.warn('ServiceWorker API warning:', e);
+    }
   }
 
   // Clear caches
   if ('caches' in window) {
     try {
-      caches.keys().then(names => {
-        for (let name of names) {
-            console.log('🧹 Clearing Cache:', name);
-            caches.delete(name).catch(e => console.warn('Cache delete failed', e));
-        }
-      }).catch(e => console.warn('Cache keys failed', e));
+      const keys = await caches.keys();
+      for (const key of keys) {
+        console.log('🧹 Clearing Cache:', key);
+        await caches.delete(key);
+      }
     } catch(e) {
-      console.warn('Cache API error:', e);
+      console.warn('Cache API warning:', e);
     }
   }
-}
+};
+
+// Execute kill switch safely after window load to avoid document state errors
+window.addEventListener('load', () => {
+  setTimeout(killServiceWorkers, 1000);
+});
 
 // 4. Clear Console (Poor man's obfuscation)
 setInterval(() => {
