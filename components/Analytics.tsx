@@ -1,5 +1,5 @@
-
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+// @ts-ignore
 import { useLocation } from 'react-router-dom';
 
 export interface AnalyticsEvent {

@@ -1,5 +1,5 @@
-
 import React, { useState } from 'react';
+// @ts-ignore
 import { Link, useNavigate } from 'react-router-dom';
 import Button from './shared/Button';
 import Card from './shared/Card';

@@ -31,6 +31,30 @@ export interface PalmMetricResponse {
     textReading: string;
 }
 
+// --- CHAT CAPABILITY ---
+export const createSageSession = (contextReading: string, topic: string) => {
+    const ai = getAi();
+    return ai.chats.create({
+        model: 'gemini-3-flash-preview',
+        config: {
+            systemInstruction: `You are Sage Vashishtha, an ancient Vedic Rishi and guide.
+            
+            CURRENT CONTEXT:
+            The user has just received a ${topic} reading.
+            Reading Content Summary: "${contextReading.substring(0, 8000)}..."
+            
+            INSTRUCTIONS:
+            1. Answer follow-up questions based on the reading above.
+            2. Keep answers concise (under 50 words) unless asked to elaborate.
+            3. Use a mystical, compassionate, yet authoritative tone.
+            4. Incorporate Sanskrit terms (e.g., Karma, Dharma, Graha, Prana) where appropriate.
+            5. If the user asks about something unrelated, gently guide them back to their spiritual path.
+            
+            Always sign off with a short blessing like "Om Shanti" or "Subham Astu" occasionally.`
+        }
+    });
+};
+
 export const getPalmReading = async (imageFile: File, language: string = 'English'): Promise<PalmMetricResponse> => {
   const ai = getAi();
   const base64Data = await fileToBase64(imageFile);

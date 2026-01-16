@@ -25,6 +25,7 @@ interface PaymentModalProps {
 const PaymentModal: React.FC<PaymentModalProps> = ({ isVisible, onClose, onSuccess, price }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [activeProvider, setActiveProvider] = useState<PaymentProvider | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<'card' | 'upi'>('upi'); // Default to UPI for Indian users usually
   const { t } = useTranslation();
   const { user, commitPendingReading, pendingReading, refreshUser } = useUser();
 
@@ -45,6 +46,10 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isVisible, onClose, onSucce
           const region = paymentManager.detectUserCountry();
           const provider = paymentManager.getActiveProvider(region);
           setActiveProvider(provider);
+          
+          // Default method selection based on region
+          if (region === 'IN') setPaymentMethod('upi');
+          else setPaymentMethod('card');
       }
   }, [isVisible]);
 
@@ -76,7 +81,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isVisible, onClose, onSucce
     onClose();
   };
 
-  const handleInitiatePayment = () => {
+  const handleInitiatePayment = (specificMethod?: string) => {
     if (!securityService.checkSystemIntegrity()) {
         alert("Security Alert: Payment blocked due to insecure environment.");
         return;
@@ -90,22 +95,17 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isVisible, onClose, onSucce
     setIsLoading(true);
 
     if (activeProvider.provider_type === 'razorpay') {
-        initRazorpay(activeProvider);
-    } else if (activeProvider.provider_type === 'stripe') {
-        // Simulate Stripe
-        setTimeout(() => {
-            handlePaymentSuccess('stripe_mock_id_123');
-        }, 1500);
+        initRazorpay(activeProvider, specificMethod);
     } else {
-        // Simulate PayPal / Generic
+        // Mock success for other providers
         setTimeout(() => {
-            handlePaymentSuccess('paypal_mock_id_123');
+            handlePaymentSuccess(`${activeProvider.provider_type}_mock_id_123`);
         }, 1500);
     }
   };
 
-  const initRazorpay = (provider: PaymentProvider) => {
-    const options = {
+  const initRazorpay = (provider: PaymentProvider, method?: string) => {
+    const options: any = {
       key: provider.api_key,
       amount: 4900, // ₹49.00 in paise
       currency: provider.currency || "INR",
@@ -118,7 +118,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isVisible, onClose, onSucce
       prefill: {
         name: user?.name || "Mystical Seeker",
         email: user?.email || "seeker@glyph.circle",
-        contact: "9999999999"
+        contact: "9999999999",
+        method: method // Pre-select method if supported by checkout
       },
       theme: {
         color: "#F59E0B"
@@ -155,35 +156,100 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isVisible, onClose, onSucce
           </svg>
         </button>
 
-        <div className="p-8 text-center">
-            <div className="w-16 h-16 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-amber-500/50">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
+        <div className="p-6 text-center">
+            <div className="w-12 h-12 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto mb-3 border border-amber-500/50">
+                <span className="text-2xl">🕉️</span>
             </div>
             
-            <h3 className="text-2xl font-cinzel font-bold text-amber-100 mb-2">
-                Secure Gateway
+            <h3 className="text-xl font-cinzel font-bold text-amber-100 mb-1">
+                Dakshina (Offering)
             </h3>
-            <p className="text-amber-200/60 text-sm mb-6">
-                Pay <span className="text-white font-bold">{activeProvider ? `${activeProvider.currency === 'INR' ? '₹' : '$'}${activeProvider.currency === 'INR' ? '49.00' : '0.99'}` : price}</span> to unlock deep insights.
+            <p className="text-amber-200/60 text-xs mb-6">
+                Complete your transaction to receive divine insight.
+                <br/>
+                <span className="text-white font-bold text-lg mt-1 block">
+                    {activeProvider ? `${activeProvider.currency === 'INR' ? '₹' : '$'}${activeProvider.currency === 'INR' ? '49.00' : '0.99'}` : price}
+                </span>
             </p>
 
-            <div className="space-y-3">
-                <Button onClick={handleInitiatePayment} disabled={isLoading} className="w-full bg-gradient-to-r from-blue-600 to-blue-800 border-none shadow-lg">
-                    {isLoading ? 'Connecting...' : `Pay via ${activeProvider?.name || 'Card'}`}
-                </Button>
+            {/* PAYMENT TABS */}
+            <div className="flex p-1 bg-black/40 rounded-lg mb-4">
+                <button 
+                    onClick={() => setPaymentMethod('upi')}
+                    className={`flex-1 py-2 text-xs font-bold rounded transition-colors ${paymentMethod === 'upi' ? 'bg-amber-600 text-white' : 'text-gray-400 hover:text-white'}`}
+                >
+                    UPI / Apps
+                </button>
+                <button 
+                    onClick={() => setPaymentMethod('card')}
+                    className={`flex-1 py-2 text-xs font-bold rounded transition-colors ${paymentMethod === 'card' ? 'bg-amber-600 text-white' : 'text-gray-400 hover:text-white'}`}
+                >
+                    Cards
+                </button>
             </div>
 
-            <div className="mt-6 flex flex-col items-center justify-center gap-1 text-[10px] text-amber-500/40 uppercase tracking-widest">
-                <div className="flex gap-2">
-                    <span>{activeProvider?.provider_type || 'Secure'}</span>
-                    <span>•</span>
-                    <span>256-bit SSL</span>
+            {/* UPI SECTION */}
+            {paymentMethod === 'upi' && (
+                <div className="space-y-3 mb-4 animate-fade-in-up">
+                    <div className="grid grid-cols-3 gap-2">
+                        <button 
+                            onClick={() => handleInitiatePayment('upi')}
+                            className="flex flex-col items-center justify-center p-2 bg-gray-800 border border-gray-700 rounded hover:border-amber-500/50 hover:bg-gray-700 transition-all"
+                        >
+                            <img src="https://cdn-icons-png.flaticon.com/512/6124/6124998.png" alt="GPay" className="w-6 h-6 mb-1 filter invert opacity-90" />
+                            <span className="text-[9px] text-gray-300">GPay</span>
+                        </button>
+                        <button 
+                            onClick={() => handleInitiatePayment('upi')}
+                            className="flex flex-col items-center justify-center p-2 bg-gray-800 border border-gray-700 rounded hover:border-amber-500/50 hover:bg-gray-700 transition-all"
+                        >
+                            <img src="https://cdn-icons-png.flaticon.com/512/825/825454.png" alt="BHIM" className="w-6 h-6 mb-1 filter invert opacity-90" />
+                            <span className="text-[9px] text-gray-300">BHIM</span>
+                        </button>
+                        <button 
+                            onClick={() => handleInitiatePayment('upi')}
+                            className="flex flex-col items-center justify-center p-2 bg-gray-800 border border-gray-700 rounded hover:border-amber-500/50 hover:bg-gray-700 transition-all"
+                        >
+                            <img src="https://cdn-icons-png.flaticon.com/512/196/196566.png" alt="Paytm" className="w-6 h-6 mb-1 filter invert opacity-90" />
+                            <span className="text-[9px] text-gray-300">Any UPI</span>
+                        </button>
+                    </div>
+                    <div className="relative">
+                        <input 
+                            type="text" 
+                            placeholder="Enter UPI ID (e.g. user@oksbi)" 
+                            className="w-full bg-black/30 border border-gray-700 rounded p-2 text-xs text-white focus:border-amber-500 outline-none"
+                        />
+                        <button 
+                            onClick={() => handleInitiatePayment('upi')}
+                            className="absolute right-1 top-1 bg-amber-700 text-white text-[10px] px-2 py-1 rounded hover:bg-amber-600"
+                        >
+                            VERIFY
+                        </button>
+                    </div>
                 </div>
-                {activeProvider && (
-                    <span className="text-[9px] text-gray-600">Routing via {activeProvider.country_codes}</span>
-                )}
+            )}
+
+            {/* CARD SECTION */}
+            {paymentMethod === 'card' && (
+                <div className="space-y-3 mb-4 animate-fade-in-up">
+                    <Button onClick={() => handleInitiatePayment('card')} disabled={isLoading} className="w-full bg-blue-700 hover:bg-blue-600 border-none shadow-lg text-xs py-3">
+                        {isLoading ? 'Processing...' : 'Pay via Credit/Debit Card'}
+                    </Button>
+                    <div className="flex justify-center gap-2 opacity-50">
+                        <div className="w-8 h-5 bg-white rounded"></div>
+                        <div className="w-8 h-5 bg-white rounded"></div>
+                        <div className="w-8 h-5 bg-white rounded"></div>
+                    </div>
+                </div>
+            )}
+
+            <div className="mt-4 flex flex-col items-center justify-center gap-1 text-[9px] text-gray-500 uppercase tracking-widest border-t border-gray-800 pt-3">
+                <div className="flex gap-2 items-center">
+                    <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                    <span>SECURE TRANSACTION</span>
+                </div>
+                <span>Processed by {activeProvider?.name || 'Gateway'}</span>
             </div>
         </div>
       </div>

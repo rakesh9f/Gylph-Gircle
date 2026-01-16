@@ -111,5 +111,9 @@ export default {
   "guidancePrompt": "Share your worries or questions to receive personalized Vedic remedies and spiritual guidance.",
   "describeConcern": "Describe your concern or question...",
   "getGuidance": "Get Spiritual Guidance",
-  "guidancePlaceholder": "Your guidance will appear here."
+  "guidancePlaceholder": "Your guidance will appear here.",
+  "invalidName": "Please enter a valid name (at least 2 letters, no numbers).",
+  "invalidDob": "Please enter a valid Date of Birth.",
+  "invalidPob": "Please enter a valid Place of Birth.",
+  "invalidTob": "Please enter a valid Time of Birth."
 };

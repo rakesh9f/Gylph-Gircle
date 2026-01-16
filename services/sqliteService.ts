@@ -42,7 +42,10 @@ const idbAdapter = {
         const req = store.put(data, IDB_CONFIG.KEY);
         
         req.onsuccess = () => resolve();
-        req.onerror = () => reject(req.error);
+        req.onerror = (e) => {
+            console.error("IDB Save Failed", e);
+            reject(req.error);
+        };
       });
     } catch (err) {
       console.error("IDB Save Error:", err);
@@ -71,12 +74,13 @@ class SqliteService {
   private db: any = null;
   private SQL: any = null;
   private isReady: boolean = false;
+  private savePromise: Promise<void> = Promise.resolve();
   
   // Legacy LocalStorage Key for Migration
   private readonly LEGACY_KEY = 'glyph_circle_prod_v4.sqlite';
 
   constructor() {
-    this.init();
+    // Init called externally
   }
 
   // --- INITIALIZATION ---
@@ -95,6 +99,7 @@ class SqliteService {
 
       // 1. Try Load from IndexedDB (Primary)
       let binaryDb = await idbAdapter.load();
+      let isFresh = false;
       
       // 2. Migration: If no IDB, check LocalStorage
       if (!binaryDb) {
@@ -116,14 +121,17 @@ class SqliteService {
         } catch (e) {
             console.error("❌ SQLite: Corrupt DB. Resetting...", e);
             this.db = new this.SQL.Database();
-            this.autoMigrateFromMock();
+            isFresh = true;
         }
       } else {
         // 3. New DB
         this.db = new this.SQL.Database();
         console.log("🆕 SQLite: Created new instance (Fresh).");
-        this.autoMigrateFromMock();
+        isFresh = true;
       }
+
+      // 4. Run Safe Merge Migration (Preserves user data, adds new features)
+      await this.safeMergeMigration(isFresh);
 
       this.isReady = true;
     } catch (err) {
@@ -131,8 +139,11 @@ class SqliteService {
     }
   }
 
-  // --- AUTO-SCHEMA DETECTION & MIGRATION ---
-  private autoMigrateFromMock() {
+  // --- SAFE MERGE MIGRATION ---
+  // Ensures user data persists. Only inserts mock records if they don't exist.
+  private async safeMergeMigration(isFreshDb: boolean) {
+    let schemaChanged = false;
+
     Object.keys(MOCK_DATABASE).forEach(tableName => {
       const records = MOCK_DATABASE[tableName];
       if (!records || records.length === 0) return;
@@ -156,35 +167,47 @@ class SqliteService {
       });
 
       try {
+          // 1. Ensure Table Exists
           const createSql = `CREATE TABLE IF NOT EXISTS ${tableName} (${columnDefinitions.join(', ')});`;
           this.db.run(createSql);
           
-          const countRes = this.db.exec(`SELECT count(*) as count FROM ${tableName}`);
-          if (countRes.length > 0 && countRes[0].values[0][0] > 0) {
-              return; 
-          }
-
+          // 2. Safe Insert (Only insert if ID doesn't exist)
           const placeholders = columns.map(() => '?').join(', ');
           const insertSql = `INSERT INTO ${tableName} (${columns.join(', ')}) VALUES (${placeholders})`;
           const stmt = this.db.prepare(insertSql);
           
           records.forEach((record: any) => {
-            const values = columns.map(col => {
-              const val = record[col];
-              if (val === undefined || val === null) return null;
-              if (typeof val === 'object') return JSON.stringify(val);
-              if (typeof val === 'boolean') return val ? 1 : 0;
-              return val;
-            });
-            stmt.run(values);
+            // Check if record exists
+            try {
+                const check = this.db.exec(`SELECT id FROM ${tableName} WHERE id = '${record.id}'`);
+                const exists = check.length > 0 && check[0].values.length > 0;
+
+                if (!exists) {
+                    const values = columns.map(col => {
+                      const val = record[col];
+                      if (val === undefined || val === null) return null;
+                      if (typeof val === 'object') return JSON.stringify(val);
+                      if (typeof val === 'boolean') return val ? 1 : 0;
+                      return val;
+                    });
+                    stmt.run(values);
+                    schemaChanged = true;
+                }
+            } catch (err) {
+                // Ignore query errors, proceed
+            }
           });
           stmt.free();
+
       } catch (e) {
           console.error(`Migration Error ${tableName}:`, e);
       }
     });
 
-    this.saveToStorage();
+    // Save only if we added new default data (schema change) or it's a fresh DB
+    if (schemaChanged || isFreshDb) {
+        await this.saveToStorage();
+    }
   }
 
   // --- CRUD OPERATIONS ---
@@ -222,7 +245,7 @@ class SqliteService {
     return res[0] || null;
   }
 
-  insert(tableName: string, data: any) {
+  async insert(tableName: string, data: any) {
     try {
         const columns = Object.keys(data);
         const placeholders = columns.map(() => '?').join(', ');
@@ -235,12 +258,15 @@ class SqliteService {
             return val;
         });
         this.db.run(sql, values);
-        this.saveToStorage();
+        await this.saveToStorage(); // Force save after insert
         return data;
-    } catch (e) { return null; }
+    } catch (e) { 
+        console.error("SQL Insert Error", e);
+        return null; 
+    }
   }
 
-  update(tableName: string, id: string | number, data: any) {
+  async update(tableName: string, id: string | number, data: any) {
     try {
         const setClause = Object.keys(data).map(k => `${k} = ?`).join(', ');
         const sql = `UPDATE ${tableName} SET ${setClause} WHERE id = ?`;
@@ -252,16 +278,16 @@ class SqliteService {
         });
         values.push(id);
         this.db.run(sql, values);
-        this.saveToStorage();
+        await this.saveToStorage(); // Force save after update
     } catch (e) { console.error("SQL Update Error", e); }
   }
 
-  toggleStatus(tableName: string, id: string | number) {
+  async toggleStatus(tableName: string, id: string | number) {
     const record = this.getById(tableName, id);
     if (record) {
         const newStatus = record.status === 'active' ? 'inactive' : 'active';
         this.db.run(`UPDATE ${tableName} SET status = ? WHERE id = ?`, [newStatus, id]);
-        this.saveToStorage();
+        await this.saveToStorage(); // Force save after toggle
     }
   }
 
@@ -284,7 +310,7 @@ class SqliteService {
     }
   }
 
-  importFromJson(jsonData: Record<string, any[]>) {
+  async importFromJson(jsonData: Record<string, any[]>) {
     if (!this.db) return;
     try {
         Object.keys(jsonData).forEach(tableName => {
@@ -320,7 +346,7 @@ class SqliteService {
             stmt.free();
         });
 
-        this.saveToStorage();
+        await this.saveToStorage();
     } catch (e) {
         console.error("Import failed", e);
         throw new Error("Failed to restore database from file.");
@@ -330,20 +356,24 @@ class SqliteService {
   // --- PERSISTENCE ---
   private async saveToStorage() {
     if (this.db) {
-        try {
-            // Export raw binary (Uint8Array)
-            const data = this.db.export();
-            
-            // Save to IndexedDB (No size limit issues like LocalStorage)
-            await idbAdapter.save(data);
-            
-            // Clean up legacy storage to free space if migration was successful
-            if (localStorage.getItem(this.LEGACY_KEY)) {
-                localStorage.removeItem(this.LEGACY_KEY);
+        // Enqueue saves to prevent race conditions
+        this.savePromise = this.savePromise.then(async () => {
+            try {
+                // Export raw binary (Uint8Array)
+                const data = this.db.export();
+                
+                // Save to IndexedDB
+                await idbAdapter.save(data);
+                
+                // Clean up legacy storage to avoid confusion
+                if (localStorage.getItem(this.LEGACY_KEY)) {
+                    localStorage.removeItem(this.LEGACY_KEY);
+                }
+            } catch (e) {
+                console.error("CRITICAL: Failed to save DB", e);
             }
-        } catch (e) {
-            console.error("CRITICAL: Failed to save DB", e);
-        }
+        });
+        return this.savePromise;
     }
   }
 

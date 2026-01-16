@@ -1,11 +1,12 @@
-
 import React, { useRef, useState } from 'react';
+// @ts-ignore
 import { Link } from 'react-router-dom';
 import Button from './shared/Button';
 import { useTranslation } from '../hooks/useTranslation';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import { cloudManager } from '../services/cloudManager';
+import SageChat from './SageChat';
 
 interface FullReportProps {
   reading: string;
@@ -41,7 +42,7 @@ const FullReport: React.FC<FullReportProps> = ({ reading, title, subtitle, image
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   
                   {/* CHART: VEDIC GRID */}
-                  <div className="bg-[#0F0F23] border-2 border-amber-500/40 p-1 rounded-lg shadow-[0_0_30px_rgba(245,158,11,0.15)] flex flex-col items-center">
+                  <div className="bg-[#0F0F23] border-2 border-amber-500/40 p-4 rounded-xl shadow-[0_0_30px_rgba(245,158,11,0.15)] flex flex-col items-center transform transition-transform hover:scale-[1.02]">
                       <h4 className="text-amber-400 font-cinzel font-bold mb-3 mt-2 tracking-widest text-sm uppercase">Vedic Birth Chart</h4>
                       <div className="grid grid-cols-3 gap-1 bg-amber-900/50 p-1 rounded border border-amber-500/30 w-48 h-48">
                           {gridMap.flat().map((num) => {
@@ -72,21 +73,21 @@ const FullReport: React.FC<FullReportProps> = ({ reading, title, subtitle, image
 
                   {/* STATS: CORE NUMBERS */}
                   <div className="flex flex-col justify-center space-y-4">
-                      <div className="bg-black/30 p-4 rounded border-l-4 border-purple-500">
+                      <div className="bg-black/30 p-4 rounded-xl border-l-4 border-purple-500 hover:bg-purple-900/10 transition-colors">
                           <p className="text-xs text-purple-400 uppercase tracking-widest mb-1">Mulank (Psychic)</p>
                           <div className="flex justify-between items-end">
                               <span className="text-3xl font-bold text-white">{coreNumbers.mulank}</span>
                               <span className="text-xs text-gray-400">Ruling Planet: <span className="text-purple-200">Sun/Moon</span></span>
                           </div>
                       </div>
-                      <div className="bg-black/30 p-4 rounded border-l-4 border-green-500">
+                      <div className="bg-black/30 p-4 rounded-xl border-l-4 border-green-500 hover:bg-green-900/10 transition-colors">
                           <p className="text-xs text-green-400 uppercase tracking-widest mb-1">Bhagyank (Destiny)</p>
                           <div className="flex justify-between items-end">
                               <span className="text-3xl font-bold text-white">{coreNumbers.bhagyank}</span>
                               <span className="text-xs text-gray-400">Life Path</span>
                           </div>
                       </div>
-                      <div className="bg-black/30 p-4 rounded border-l-4 border-blue-500">
+                      <div className="bg-black/30 p-4 rounded-xl border-l-4 border-blue-500 hover:bg-blue-900/10 transition-colors">
                           <p className="text-xs text-blue-400 uppercase tracking-widest mb-1">Namank (Name)</p>
                           <div className="flex justify-between items-end">
                               <span className="text-3xl font-bold text-white">{coreNumbers.namank}</span>
@@ -95,31 +96,14 @@ const FullReport: React.FC<FullReportProps> = ({ reading, title, subtitle, image
                       </div>
                   </div>
               </div>
-
-              {/* ANCIENT IMAGERY SECTION */}
-              <div className="grid grid-cols-2 gap-2 mt-4 opacity-80 hover:opacity-100 transition-opacity">
-                  <div className="relative h-24 feature-image-container rounded border border-amber-500/20">
-                      <img src="https://images.unsplash.com/photo-1600609842388-3e4b489d71c6?q=80&w=400" alt="Crystal" className="dynamic-image" />
-                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center pointer-events-none">
-                          <span className="text-xs text-amber-100 font-cinzel">Yantra</span>
-                      </div>
-                  </div>
-                  <div className="relative h-24 feature-image-container rounded border border-amber-500/20">
-                      <img src="https://images.unsplash.com/photo-1542645976-7973d4177b9c?q=80&w=400" alt="Vedic Script" className="dynamic-image" />
-                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center pointer-events-none">
-                          <span className="text-xs text-amber-100 font-cinzel">Sutra</span>
-                      </div>
-                  </div>
-              </div>
           </div>
       );
   };
 
-  // --- GENERIC VEDIC CHART RENDERER (For Tarot, Dreams, Remedy, Face, Palm) ---
+  // --- GENERIC VEDIC CHART RENDERER ---
   const renderGenericVedicCharts = () => {
-      if (!chartData || chartData.planets || chartData.coreNumbers) return null; // Skip if Astrology or Numerology
+      if (!chartData || chartData.planets || chartData.coreNumbers) return null; 
 
-      // Check for specific Vedic structures in chartData
       const { vedicMetrics, elementalBalance, doshaState } = chartData;
 
       if (!vedicMetrics && !elementalBalance && !doshaState) return null;
@@ -127,9 +111,8 @@ const FullReport: React.FC<FullReportProps> = ({ reading, title, subtitle, image
       return (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 break-inside-avoid">
               
-              {/* 1. Pancha Maha Bhuta (Elemental Balance) */}
               {elementalBalance && (
-                  <div className="bg-black/30 p-4 rounded border border-amber-500/20">
+                  <div className="bg-black/30 p-4 rounded-xl border border-amber-500/20">
                       <h4 className="text-amber-400 font-cinzel font-bold text-xs uppercase tracking-widest mb-3 border-b border-amber-500/10 pb-1">
                           Pancha Bhuta (Elements)
                       </h4>
@@ -157,9 +140,8 @@ const FullReport: React.FC<FullReportProps> = ({ reading, title, subtitle, image
                   </div>
               )}
 
-              {/* 2. Dosha / Guna / Energy State */}
               {(doshaState || vedicMetrics) && (
-                  <div className="bg-black/30 p-4 rounded border border-amber-500/20">
+                  <div className="bg-black/30 p-4 rounded-xl border border-amber-500/20">
                       <h4 className="text-amber-400 font-cinzel font-bold text-xs uppercase tracking-widest mb-3 border-b border-amber-500/10 pb-1">
                           Prana & Energy Flow
                       </h4>
@@ -189,7 +171,7 @@ const FullReport: React.FC<FullReportProps> = ({ reading, title, subtitle, image
 
   // --- ASTROLOGY CHART RENDERERS ---
   const renderPlanetaryTable = (planets: any[]) => (
-      <div className="overflow-x-auto mb-8 bg-black/20 rounded border border-amber-500/20">
+      <div className="overflow-x-auto mb-8 bg-black/20 rounded-lg border border-amber-500/20 shadow-inner">
           <table className="w-full text-xs sm:text-sm text-left">
               <thead className="bg-amber-900/40 text-amber-100 font-cinzel">
                   <tr>
@@ -203,7 +185,7 @@ const FullReport: React.FC<FullReportProps> = ({ reading, title, subtitle, image
               </thead>
               <tbody className="text-amber-200/80 font-mono">
                   {planets.map((p, i) => (
-                      <tr key={i} className="hover:bg-amber-500/5">
+                      <tr key={i} className="hover:bg-amber-500/10 transition-colors">
                           <td className="p-2 border-b border-amber-500/10 font-bold">{p.name}</td>
                           <td className="p-2 border-b border-amber-500/10">{p.signName}</td>
                           <td className="p-2 border-b border-amber-500/10">
@@ -268,11 +250,11 @@ const FullReport: React.FC<FullReportProps> = ({ reading, title, subtitle, image
 
   const renderAstroCharts = () => {
     if (!chartData || !chartData.planets) return null;
-    const { planets, houses, dasha, panchang } = chartData;
+    const { planets, dasha, panchang } = chartData;
     return (
       <div className="space-y-8 mt-8 border-t border-amber-500/30 pt-8">
           {renderVisualKundali()}
-          <div className="bg-amber-900/20 p-4 rounded border border-amber-500/30 grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+          <div className="bg-amber-900/20 p-4 rounded-lg border border-amber-500/30 grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
               <div><span className="text-gray-400 block">Tithi</span><span className="text-amber-100 font-bold">{panchang.tithi}</span></div>
               <div><span className="text-gray-400 block">Nakshatra</span><span className="text-amber-100 font-bold">{panchang.nakshatra}</span></div>
               <div><span className="text-gray-400 block">Yoga</span><span className="text-amber-100 font-bold">{panchang.yoga}</span></div>
@@ -281,16 +263,16 @@ const FullReport: React.FC<FullReportProps> = ({ reading, title, subtitle, image
           {renderPlanetaryTable(planets)}
           <div className="break-inside-avoid">
              <h4 className="text-lg font-cinzel font-bold text-amber-400 mb-3 border-l-4 border-amber-500 pl-2">Vimshottari Dasha</h4>
-             <div className="overflow-x-auto">
-                 <table className="w-full text-xs text-left border-collapse border border-amber-500/20">
+             <div className="overflow-x-auto bg-black/20 rounded border border-amber-500/20">
+                 <table className="w-full text-xs text-left border-collapse">
                      <thead className="bg-amber-900/30">
-                         <tr><th className="p-2 border border-amber-500/20 text-amber-200">Maha Dasha</th><th className="p-2 border border-amber-500/20 text-amber-200">End Date</th></tr>
+                         <tr><th className="p-2 border-b border-amber-500/20 text-amber-200">Maha Dasha</th><th className="p-2 border-b border-amber-500/20 text-amber-200">End Date</th></tr>
                      </thead>
                      <tbody>
                          {dasha.timeline.map((d: any, i: number) => (
                              <tr key={i} className="hover:bg-amber-900/10">
-                                 <td className="p-2 border border-amber-500/20 text-amber-100">{d.planet}</td>
-                                 <td className="p-2 border border-amber-500/20 text-amber-100">{d.end}</td>
+                                 <td className="p-2 border-b border-amber-500/10 text-amber-100">{d.planet}</td>
+                                 <td className="p-2 border-b border-amber-500/10 text-amber-100">{d.end}</td>
                              </tr>
                          ))}
                      </tbody>
@@ -301,6 +283,7 @@ const FullReport: React.FC<FullReportProps> = ({ reading, title, subtitle, image
     );
   };
 
+  // --- TEXT FORMATTER ---
   const renderFormattedText = (text: string) => {
     const cleanText = text.replace(/#+\s*/g, '');
     const lines = cleanText.split('\n');
@@ -315,7 +298,7 @@ const FullReport: React.FC<FullReportProps> = ({ reading, title, subtitle, image
         if (isHeader) {
             const content = trimmed.replace(/\*\*/g, '');
             return (
-                <h4 key={i} className="text-xl font-cinzel font-bold text-amber-300 mt-6 mb-3 border-l-4 border-amber-500 pl-3">
+                <h4 key={i} className="text-xl font-cinzel font-bold text-amber-300 mt-8 mb-4 border-l-4 border-amber-500 pl-3">
                     {content}
                 </h4>
             );
@@ -324,9 +307,9 @@ const FullReport: React.FC<FullReportProps> = ({ reading, title, subtitle, image
         if (isList) {
             const parts = trimmed.split(/(\*\*.*?\*\*)/g);
             return (
-                <div key={i} className="flex items-start mb-2 pl-2">
-                    <span className="text-amber-500 mr-2 mt-1">✦</span>
-                    <div className="text-amber-100/90 leading-relaxed text-left flex-1">
+                <div key={i} className="flex items-start mb-3 pl-2">
+                    <span className="text-amber-500 mr-2 mt-1.5 text-[10px]">✦</span>
+                    <div className="text-amber-100/90 leading-relaxed text-left flex-1 text-sm md:text-base">
                         {parts.map((part, j) => {
                             if (part.startsWith('**') && part.endsWith('**')) {
                                 return <strong key={j} className="text-amber-200 font-bold">{part.slice(2, -2)}</strong>;
@@ -340,7 +323,7 @@ const FullReport: React.FC<FullReportProps> = ({ reading, title, subtitle, image
 
         const parts = trimmed.split(/(\*\*.*?\*\*)/g);
         return (
-            <p key={i} className="mb-3 text-justify leading-relaxed text-amber-100/80">
+            <p key={i} className="mb-4 text-justify leading-relaxed text-amber-100/80 text-sm md:text-base">
                 {parts.map((part, j) => {
                     if (part.startsWith('**') && part.endsWith('**')) {
                         return <strong key={j} className="text-amber-400 font-bold">{part.slice(2, -2)}</strong>;
@@ -364,7 +347,7 @@ const FullReport: React.FC<FullReportProps> = ({ reading, title, subtitle, image
           const pdfHeight = pdf.internal.pageSize.getHeight();
           const imgWidth = canvas.width;
           const imgHeight = canvas.height;
-          const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+          
           const componentHeightInPDF = (imgHeight * pdfWidth) / imgWidth;
           
           if (componentHeightInPDF > pdfHeight) {
@@ -395,61 +378,11 @@ const FullReport: React.FC<FullReportProps> = ({ reading, title, subtitle, image
       if (subtitle) body += `${subtitle}\n`;
       body += `\n`;
 
-      // --- 1. CHART DATA FORMATTING ---
-      if (chartData) {
-          // Numerology Grid
-          if (chartData.vedicGrid) {
-              body += `[ VEDIC BIRTH GRID ]\n`;
-              const g = chartData.vedicGrid;
-              // Standard Layout: 3 1 9 / 6 7 5 / 2 8 4
-              const row1 = `${g['3']?'3'.repeat(g['3']):'-'} | ${g['1']?'1'.repeat(g['1']):'-'} | ${g['9']?'9'.repeat(g['9']):'-'}`;
-              const row2 = `${g['6']?'6'.repeat(g['6']):'-'} | ${g['7']?'7'.repeat(g['7']):'-'} | ${g['5']?'5'.repeat(g['5']):'-'}`;
-              const row3 = `${g['2']?'2'.repeat(g['2']):'-'} | ${g['8']?'8'.repeat(g['8']):'-'} | ${g['4']?'4'.repeat(g['4']):'-'}`;
-              
-              body += `${row1}\n${row2}\n${row3}\n\n`;
-              
-              if (chartData.coreNumbers) {
-                  body += `Mulank (Psychic): ${chartData.coreNumbers.mulank}\n`;
-                  body += `Bhagyank (Destiny): ${chartData.coreNumbers.bhagyank}\n\n`;
-              }
-          }
-          // Astrology Planets
-          else if (chartData.planets) {
-              body += `[ PLANETARY POSITIONS ]\n`;
-              chartData.planets.forEach((p: any) => {
-                  body += `${p.name.padEnd(8)}: ${p.signName} in House ${p.house}\n`;
-              });
-              body += `\n`;
-          }
-          // Vedic Metrics (Doshas/Elements)
-          else if (chartData.vedicMetrics) {
-               body += `[ ENERGY BALANCE ]\n`;
-               chartData.vedicMetrics.forEach((m: any) => {
-                   body += `${m.label}: ${m.value}%\n`;
-               });
-               body += `\n`;
-          }
+      if (chartData && chartData.coreNumbers) {
+          body += `Mulank: ${chartData.coreNumbers.mulank}\nBhagyank: ${chartData.coreNumbers.bhagyank}\n\n`;
       }
 
-      // --- 2. KEY INSIGHTS (CLEANED) ---
-      body += `[ MYSTICAL INSIGHTS ]\n`;
-      // Remove Markdown headers and bolding
-      const cleanReading = reading.replace(/\*\*/g, '').replace(/###/g, '');
-      const lines = cleanReading.split('\n').filter(line => line.trim().length > 0);
-      
-      // Take first 10 significant lines or until character limit
-      let summary = "";
-      for (const line of lines) {
-          if ((summary + line).length < 1500) {
-              summary += line + '\n\n';
-          } else {
-              summary += '...\n(Open app to read full report)';
-              break;
-          }
-      }
-      body += summary;
-
-      body += `\n\nOm Shanti,\nGlyph Circle AI`;
+      body += `Your detailed reading is available in the app.\n\nOm Shanti,\nGlyph Circle AI`;
 
       const subject = encodeURIComponent(`🔮 ${title} - Your Report`);
       const mailtoLink = `mailto:?subject=${subject}&body=${encodeURIComponent(body)}`;
@@ -459,31 +392,34 @@ const FullReport: React.FC<FullReportProps> = ({ reading, title, subtitle, image
 
   return (
     <div className="animate-fade-in-up w-full">
+        {/* CONTEXTUAL SAGE CHAT COMPANION */}
+        <SageChat context={reading} type={title} />
+
         {/* REPORT CONTENT */}
-        <div ref={reportRef} className="bg-black/90 p-8 rounded-lg border border-amber-500/10 mb-6 relative overflow-hidden group">
-              <div className="absolute top-0 left-0 w-1 h-full bg-amber-500/50"></div>
+        <div ref={reportRef} className="bg-black/90 p-6 md:p-10 rounded-xl border border-amber-500/10 mb-8 relative overflow-hidden group shadow-2xl">
+              {/* Decorative Border Line */}
+              <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-amber-600 via-purple-600 to-amber-600"></div>
               
-              <div className="flex justify-between items-center mb-6 border-b border-amber-500/20 pb-4">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 border-b border-amber-500/20 pb-6">
                   <div>
-                      <h3 className="text-2xl font-cinzel text-amber-200">{title}</h3>
-                      {subtitle && <p className="text-amber-500/70 text-xs font-bold uppercase tracking-widest mt-1">{subtitle}</p>}
+                      <h3 className="text-3xl font-cinzel font-black text-amber-200 tracking-wide">{title}</h3>
+                      {subtitle && <p className="text-amber-500/70 text-xs font-bold uppercase tracking-[0.2em] mt-2">{subtitle}</p>}
                   </div>
-                  <div className="text-right">
+                  <div className="text-right mt-4 md:mt-0">
                       <h1 className="text-xl font-cinzel font-bold text-amber-500 tracking-wider">GLYPH CIRCLE</h1>
-                      <p className="text-[10px] text-amber-200/50">{new Date().toLocaleDateString()}</p>
+                      <p className="text-[10px] text-amber-200/50 font-mono">{new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
                   </div>
               </div>
               
               <div className="w-full">
                  {/* Vedic Image or Chart - UNIVERSAL DISPLAY */}
                  {imageUrl && (
-                     <div className="mb-6 h-64 w-full feature-image-container rounded-lg border border-amber-500/20">
+                     <div className="mb-8 h-64 md:h-80 w-full feature-image-container rounded-xl border border-amber-500/20 overflow-hidden shadow-lg">
                          <img 
                             src={cloudManager.resolveImage(imageUrl)} 
                             alt="Chart" 
                             className="dynamic-image"
                             onError={(e) => {
-                                // Fallback if specific chart image fails (e.g. invalid GDrive link)
                                 console.warn("Image load error, switching to fallback", imageUrl);
                                 e.currentTarget.src = "https://images.unsplash.com/photo-1532012197267-da84d127e765?q=80&w=1000";
                             }}
@@ -497,30 +433,35 @@ const FullReport: React.FC<FullReportProps> = ({ reading, title, subtitle, image
                  {renderGenericVedicCharts()}
                  {renderAstroCharts()}
 
-                 <div className="font-lora text-amber-100/90 leading-relaxed">
+                 <div className="font-lora text-amber-100/90 leading-relaxed space-y-4">
                     {renderFormattedText(reading)}
                  </div>
               </div>
               
-              <div className="mt-8 pt-4 border-t border-amber-500/10 text-center text-[10px] text-amber-200/40 font-mono">
-                  Generative Insight by Glyph Circle AI • Ancient Wisdom Reimagined
+              <div className="mt-12 pt-6 border-t border-amber-500/10 text-center flex flex-col items-center">
+                  <div className="w-8 h-8 mb-2 rounded-full border border-amber-500/30 flex items-center justify-center text-xs">🕉️</div>
+                  <p className="text-[10px] text-amber-200/40 font-mono uppercase tracking-widest">
+                      Generative Insight by Glyph Circle AI • Ancient Wisdom Reimagined
+                  </p>
               </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-6">
-              <Button onClick={handleDownloadPDF} disabled={isDownloading} className="w-full sm:w-auto text-sm bg-gray-700 hover:bg-gray-600 border-gray-500">
-                  {isDownloading ? 'Generating...' : t('downloadPDF')}
+        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
+              <Button onClick={handleDownloadPDF} disabled={isDownloading} className="w-full sm:w-48 text-sm bg-gray-800 hover:bg-gray-700 border-gray-600 flex items-center justify-center gap-2">
+                  <span>📄</span> {isDownloading ? 'Processing...' : t('downloadPDF')}
               </Button>
-              <Button onClick={handleEmailReport} className="w-full sm:w-auto text-sm bg-gray-700 hover:bg-gray-600 border-gray-500">
-                  {t('emailReport')}
+              <Button onClick={handleEmailReport} className="w-full sm:w-48 text-sm bg-gray-800 hover:bg-gray-700 border-gray-600 flex items-center justify-center gap-2">
+                  <span>✉️</span> {t('emailReport')}
               </Button>
         </div>
           
-        <Link to="/home">
-            <Button className="w-full bg-gradient-to-r from-amber-700 to-maroon-800 border-amber-500/50">
-                {t('backToDashboard')}
-            </Button>
-        </Link>
+        <div className="text-center">
+            <Link to="/home">
+                <Button className="w-full md:w-auto px-12 bg-gradient-to-r from-amber-700 to-maroon-800 border-amber-500/50 shadow-lg">
+                    {t('backToDashboard')}
+                </Button>
+            </Link>
+        </div>
     </div>
   );
 };

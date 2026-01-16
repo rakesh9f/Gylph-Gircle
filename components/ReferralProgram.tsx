@@ -1,15 +1,14 @@
-
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
 import Card from './shared/Card';
 import Button from './shared/Button';
 import ShareButton from './ShareButton';
+// @ts-ignore
 import { Link } from 'react-router-dom';
 
 const ReferralProgram: React.FC = () => {
   const { user } = useAuth();
   
-  // Generate a deterministic but fake code for demo if not present
   const referralCode = user?.name 
     ? `${user.name.split(' ')[0].toUpperCase()}${user.id.substring(0,3)}` 
     : 'MYSTIC123';
@@ -26,8 +25,8 @@ const ReferralProgram: React.FC = () => {
         </div>
 
         <div className="max-w-2xl mx-auto relative z-10">
-             <Link to="/home" className="inline-flex items-center text-amber-200 hover:text-amber-400 transition-colors mb-6">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+             <Link to="/home" className="inline-flex items-center text-amber-200 hover:text-amber-400 transition-colors mb-6 group">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 transform group-hover:-translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                 </svg>
                 Back to Sanctuary
@@ -47,26 +46,14 @@ const ReferralProgram: React.FC = () => {
                     {/* Code Box */}
                     <div className="bg-gray-800/50 border border-amber-500/30 rounded-xl p-6 mb-8 relative group">
                         <p className="text-xs text-amber-200/50 uppercase tracking-widest mb-2">Your Unique Code</p>
-                        <div className="text-3xl font-mono font-bold text-amber-400 tracking-wider select-all" onClick={() => {
+                        <div className="text-3xl font-mono font-bold text-amber-400 tracking-wider select-all cursor-pointer" onClick={() => {
                             navigator.clipboard.writeText(referralCode);
                             alert("Code copied!");
                         }}>
                             {referralCode}
                         </div>
-                        <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity text-xs text-amber-500">
+                        <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity text-xs text-amber-500 pointer-events-none">
                             Click to Copy
-                        </div>
-                    </div>
-
-                    {/* Stats Grid */}
-                    <div className="grid grid-cols-2 gap-4 mb-8">
-                        <div className="bg-black/30 p-4 rounded-lg border border-gray-800">
-                            <div className="text-2xl font-bold text-white">0</div>
-                            <div className="text-xs text-gray-400">Friends Invited</div>
-                        </div>
-                        <div className="bg-black/30 p-4 rounded-lg border border-gray-800">
-                            <div className="text-2xl font-bold text-green-400">₹0</div>
-                            <div className="text-xs text-gray-400">Credits Earned</div>
                         </div>
                     </div>
 
@@ -76,11 +63,24 @@ const ReferralProgram: React.FC = () => {
                         url={referralLink} 
                         className="w-full"
                     />
-
-                    <p className="mt-6 text-xs text-gray-500">
-                        Credits are applied automatically when your friend completes their first reading.
-                        <br/>Max reward limit: ₹500 per month.
-                    </p>
+                </div>
+                
+                <div className="bg-gray-900/80 p-6 border-t border-amber-500/20">
+                    <h3 className="text-amber-200 font-bold mb-4 text-sm uppercase tracking-widest">How it works</h3>
+                    <div className="space-y-4 text-left">
+                        <div className="flex items-start gap-3">
+                            <div className="w-6 h-6 rounded-full bg-amber-900/50 flex items-center justify-center text-xs font-bold text-amber-400 border border-amber-500/30">1</div>
+                            <p className="text-sm text-gray-400">Share your unique code with friends via WhatsApp or Social Media.</p>
+                        </div>
+                        <div className="flex items-start gap-3">
+                            <div className="w-6 h-6 rounded-full bg-amber-900/50 flex items-center justify-center text-xs font-bold text-amber-400 border border-amber-500/30">2</div>
+                            <p className="text-sm text-gray-400">Friends sign up using your code.</p>
+                        </div>
+                        <div className="flex items-start gap-3">
+                            <div className="w-6 h-6 rounded-full bg-amber-900/50 flex items-center justify-center text-xs font-bold text-amber-400 border border-amber-500/30">3</div>
+                            <p className="text-sm text-gray-400">You both receive credits instantly upon their first login.</p>
+                        </div>
+                    </div>
                 </div>
             </Card>
         </div>

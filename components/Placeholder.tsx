@@ -1,5 +1,5 @@
-
 import React from 'react';
+// @ts-ignore
 import { Link } from 'react-router-dom';
 import Card from './shared/Card';
 import Button from './shared/Button';

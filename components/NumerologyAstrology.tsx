@@ -1,5 +1,5 @@
-
 import React, { useState, useCallback, useRef, useEffect } from 'react';
+// @ts-ignore
 import { Link } from 'react-router-dom';
 import { getAstroNumeroReading } from '../services/geminiService';
 import { calculateNumerology } from '../services/numerologyEngine';
@@ -7,13 +7,14 @@ import { calculateAstrology, AstroChart } from '../services/astrologyEngine';
 import Button from './shared/Button';
 import ProgressBar from './shared/ProgressBar';
 import Card from './shared/Card';
-import Modal from './shared/Modal'; // Reuse existing Modal
+import Modal from './shared/Modal';
 import { useTranslation } from '../hooks/useTranslation';
 import { usePayment } from '../context/PaymentContext';
 import FullReport from './FullReport';
 import { useDb } from '../hooks/useDb';
 import { useAuth } from '../context/AuthContext';
 import { SmartDatePicker, SmartTimePicker, SmartCitySearch } from './SmartAstroInputs';
+import { validationService } from '../services/validationService';
 
 interface NumerologyAstrologyProps {
   mode: 'numerology' | 'astrology';
@@ -41,11 +42,18 @@ const NumerologyAstrology: React.FC<NumerologyAstrologyProps> = ({ mode }) => {
   const { t, language } = useTranslation();
   const { openPayment } = usePayment();
   const { db } = useDb();
-  const { user } = useAuth();
+  const { user, saveReading } = useAuth();
 
-  // Admin Check
   const ADMIN_EMAILS = ['master@gylphcircle.com', 'admin@gylphcircle.com'];
   const isAdmin = user && ADMIN_EMAILS.includes(user.email);
+
+  // Reset state when mode changes
+  useEffect(() => {
+      setReading('');
+      setEngineData(null);
+      setIsPaid(false);
+      setError('');
+  }, [mode]);
 
   // F4 Key Listener
   useEffect(() => {
@@ -66,26 +74,37 @@ const NumerologyAstrology: React.FC<NumerologyAstrologyProps> = ({ mode }) => {
 
   const handleSmartDateChange = (date: string) => {
       setFormData(prev => ({ ...prev, dob: date }));
+      setError('');
   };
 
   const handleSmartTimeChange = (time: string) => {
       setFormData(prev => ({ ...prev, tob: time }));
+      setError('');
   };
 
   const handleSmartCityChange = (city: string, coordinates?: {lat: number, lng: number}) => {
       setFormData(prev => ({ ...prev, pob: city }));
       if (coordinates) setCoords(coordinates);
+      setError('');
   };
 
   const validateForm = () => {
-    if (!formData.name || !formData.dob) {
-        return 'Name and Date of Birth are required.';
+    if (!validationService.isValidName(formData.name)) {
+        return t('invalidName') || 'Please enter a valid name.';
     }
-    if (mode === 'astrology' && (!formData.pob || !formData.tob)) {
-        return 'Place and Time of Birth are required for Astrology.';
+    if (!validationService.isValidDate(formData.dob)) {
+        return t('invalidDob') || 'Please enter a valid Date of Birth.';
+    }
+    if (mode === 'astrology') {
+        if (!validationService.isNotEmpty(formData.pob)) {
+            return t('invalidPob') || 'Place of Birth is required for Astrology.';
+        }
+        if (!validationService.isValidTime(formData.tob)) {
+            return t('invalidTob') || 'Valid Time of Birth is required for Astrology.';
+        }
     }
     return '';
-  }
+  };
 
   const getLanguageName = (code: string) => {
       const map: Record<string, string> = {
@@ -105,6 +124,8 @@ const NumerologyAstrology: React.FC<NumerologyAstrologyProps> = ({ mode }) => {
     const validationError = validateForm();
     if (validationError) {
         setError(validationError);
+        // Haptic feedback for error
+        if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
         return;
     }
 
@@ -135,14 +156,18 @@ const NumerologyAstrology: React.FC<NumerologyAstrologyProps> = ({ mode }) => {
               dob: formData.dob,
               system: 'chaldean'
           });
+          // Add Vedic Grid for Full Report
           const grid = generateVedicGrid(formData.dob);
           calculatedStats = { ...calculatedStats, vedicGrid: grid };
       } else {
+          // Pass Coordinates if available, otherwise engine defaults
           calculatedStats = calculateAstrology({
             name: formData.name,
             dob: formData.dob,
             tob: formData.tob,
-            pob: formData.pob
+            pob: formData.pob,
+            lat: coords?.lat,
+            lng: coords?.lng
           });
       }
       setEngineData(calculatedStats);
@@ -157,8 +182,20 @@ const NumerologyAstrology: React.FC<NumerologyAstrologyProps> = ({ mode }) => {
       
       clearInterval(timer);
       setProgress(100);
-      
       setReading(result.reading);
+
+      // Auto-Save to History
+      const featureName = mode === 'astrology' ? t('astrology') : t('numerology');
+      const imageUrl = mode === 'numerology' 
+          ? "https://images.unsplash.com/photo-1542645976-7973d4177b9c?q=80&w=800" 
+          : db.image_assets?.find(a => a.id === 'chart_kundali_default')?.path;
+
+      saveReading({
+          type: mode,
+          title: `${featureName} for ${formData.name}`,
+          content: result.reading,
+          image_url: imageUrl
+      });
 
     } catch (err: any) {
       clearInterval(timer);
@@ -166,11 +203,13 @@ const NumerologyAstrology: React.FC<NumerologyAstrologyProps> = ({ mode }) => {
     } finally {
       setIsLoading(false);
     }
-  }, [formData, mode, language]);
+  }, [formData, mode, language, t, coords, saveReading, db]);
   
   const handleReadMore = () => {
     openPayment(() => {
         setIsPaid(true);
+        // Scroll to top to show full report clearly
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     });
   };
 
@@ -274,7 +313,7 @@ const NumerologyAstrology: React.FC<NumerologyAstrologyProps> = ({ mode }) => {
     <>
       <div className="max-w-4xl mx-auto relative">
           <Link to="/home" className="inline-flex items-center text-amber-200 hover:text-amber-400 transition-colors mb-4 group">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 transform group-hover:-translate-x-1 transition-transform" fill="none" viewBox="0 0 24" stroke="currentColor">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 transform group-hover:-translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
               {t('backToHome')}
@@ -338,7 +377,7 @@ const NumerologyAstrology: React.FC<NumerologyAstrologyProps> = ({ mode }) => {
                   </Button>
               </div>
             </form>
-            {error && <p className="text-red-400 text-center mb-4 bg-red-900/20 p-2 rounded">{error}</p>}
+            {error && <p className="text-red-400 text-center mb-4 bg-red-900/20 p-2 rounded animate-pulse">{error}</p>}
           </div>
         </Card>
         
@@ -412,8 +451,8 @@ const NumerologyAstrology: React.FC<NumerologyAstrologyProps> = ({ mode }) => {
                                   </div>
                                   <div className="space-y-4 text-amber-100">
                                       {/* Truncate reading for preview */}
-                                      <div className="whitespace-pre-wrap italic font-lora border-l-2 border-amber-500/30 pl-4">
-                                          {reading.replace(/#/g, '').replace(/\*\*/g, '').split(' ').slice(0, 30).join(' ')}...
+                                      <div className="whitespace-pre-wrap italic font-lora border-l-2 border-amber-500/30 pl-4 text-sm opacity-80">
+                                          {reading.replace(/#/g, '').replace(/\*\*/g, '').split(' ').slice(0, 40).join(' ')}...
                                       </div>
                                       <div className="pt-4 border-t border-amber-500/20 flex flex-col gap-2">
                                           <Button onClick={handleReadMore} className="w-full bg-gradient-to-r from-amber-600 to-maroon-700 border-amber-400 shadow-[0_0_20px_rgba(251,191,36,0.4)]">

@@ -1,5 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
+// @ts-ignore
 import { Link } from 'react-router-dom';
 import { SERVICE_OPTIONS, BACKGROUND_IMAGES } from '../constants';
 import { useDb } from '../hooks/useDb';
@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import Card from './shared/Card';
 import { useTranslation } from '../hooks/useTranslation';
 import { cloudManager } from '../services/cloudManager';
+import { biometricService } from '../services/biometricService';
 
 const Home: React.FC = () => {
   const [bgIndex, setBgIndex] = useState(0);
@@ -14,11 +15,10 @@ const Home: React.FC = () => {
   const { user } = useAuth();
   const activeFeature = db.featured_content?.find(c => c.status === 'active');
   const { t } = useTranslation();
+  const [showBioSetup, setShowBioSetup] = useState(false);
 
   // Merge static constants with DB data for services
   const services = (db.services || []).filter((s: any) => s.status === 'active');
-  
-  // If DB services is empty (first load before migration), fallback to constants mapped to object
   const displayServices = services.length > 0 ? services : SERVICE_OPTIONS;
 
   const ADMIN_EMAILS = ['master@gylphcircle.com', 'admin@gylphcircle.com'];
@@ -27,11 +27,32 @@ const Home: React.FC = () => {
   useEffect(() => {
     const timer = setInterval(() => {
       setBgIndex((prevIndex) => (prevIndex + 1) % BACKGROUND_IMAGES.length);
-    }, 8000); // 8 seconds per image
-    return () => clearInterval(timer);
-  }, []);
+    }, 8000); 
+    
+    // Check if we should show biometric setup (if user logged in but hasn't set it up)
+    if (user && !localStorage.getItem('glyph_bio_registered')) {
+        biometricService.isAvailable().then(avail => {
+            if (avail) setShowBioSetup(true);
+        });
+    }
 
-  // Helper to get icon from constants based on ID
+    return () => clearInterval(timer);
+  }, [user]);
+
+  const handleRegisterBiometric = async () => {
+      if (!user) return;
+      try {
+          const credId = await biometricService.register(user.id, user.name);
+          if (credId) {
+              alert("Biometrics Registered Successfully! You can use fingerprint/face ID next time.");
+              localStorage.setItem('glyph_bio_registered', 'true');
+              setShowBioSetup(false);
+          }
+      } catch (e) {
+          alert("Registration failed or cancelled.");
+      }
+  };
+
   const getIcon = (id: string) => {
       const staticOpt = SERVICE_OPTIONS.find(o => o.id === id);
       return staticOpt ? staticOpt.icon : <span className="text-2xl">✨</span>;
@@ -54,14 +75,10 @@ const Home: React.FC = () => {
             }}
           />
         ))}
-        {/* Spiritual Gradient Overlay: Dark Blue to Maroon with Gold hint */}
         <div className="absolute inset-0 bg-gradient-to-b from-[#0F172A]/80 via-[#310000]/40 to-[#450a0a]/90 mix-blend-multiply z-0 pointer-events-none" />
-        
-        {/* Cinematic Vignette */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_20%,rgba(0,0,0,0.8)_100%)] z-0 pointer-events-none" />
       </div>
 
-      {/* Main Content */}
       <div className="relative z-10 container mx-auto px-4 pt-32 pb-16 md:py-20 flex flex-col items-center">
         
         {/* Hero Section */}
@@ -69,17 +86,36 @@ const Home: React.FC = () => {
             <h1 className="text-4xl md:text-6xl lg:text-7xl font-cinzel font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-400 to-amber-100 mb-6 drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)] tracking-wide">
                 {t('welcomeToPath')}
             </h1>
-            
             <div className="flex items-center justify-center gap-4 mb-8 opacity-80">
                 <div className="h-[1px] w-16 bg-gradient-to-r from-transparent to-amber-500"></div>
                 <div className="text-amber-400 text-xl">✦</div>
                 <div className="h-[1px] w-16 bg-gradient-to-l from-transparent to-amber-500"></div>
             </div>
-
             <p className="text-xl md:text-2xl text-amber-100/90 font-lora italic max-w-3xl mx-auto leading-relaxed drop-shadow-lg">
                 {t('chooseService')}
             </p>
         </div>
+        
+        {/* Biometric Setup Prompt */}
+        {showBioSetup && (
+            <div className="w-full max-w-md mb-8 animate-fade-in-up">
+                <div className="bg-purple-900/60 border border-purple-500/50 p-4 rounded-xl flex items-center justify-between backdrop-blur-md shadow-[0_0_20px_rgba(139,92,246,0.2)]">
+                    <div className="flex items-center gap-3">
+                        <span className="text-2xl animate-pulse">👆</span>
+                        <div>
+                            <h4 className="text-purple-100 font-bold text-sm">Secure Your Sanctuary</h4>
+                            <p className="text-purple-300 text-xs">Enable fingerprint login for instant access.</p>
+                        </div>
+                    </div>
+                    <button 
+                        onClick={handleRegisterBiometric}
+                        className="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors"
+                    >
+                        Setup
+                    </button>
+                </div>
+            </div>
+        )}
         
         {/* Featured Content Card */}
          {activeFeature && (
@@ -122,7 +158,6 @@ const Home: React.FC = () => {
                 <div className="absolute -inset-0.5 bg-gradient-to-br from-amber-600/20 to-maroon-600/20 rounded-2xl blur opacity-0 group-hover:opacity-100 transition duration-700"></div>
                 <Card className="h-full bg-gradient-to-b from-gray-900/80 to-black/80 backdrop-blur-md border border-amber-500/20 group-hover:border-amber-400/50 group-hover:bg-black/80 transition-all duration-500 relative overflow-hidden flex flex-col">
                     
-                    {/* Optional Top Image from DB */}
                     {service.image && (
                         <div className="h-48 feature-image-container border-b border-amber-500/10">
                             <img 
@@ -130,8 +165,6 @@ const Home: React.FC = () => {
                                 alt={service.name} 
                                 className="dynamic-image opacity-80 group-hover:opacity-100"
                                 onError={(e) => {
-                                    // Use a reliable fallback image if the primary one fails
-                                    console.warn(`⚠️ Image failed for ${service.name}, using fallback.`);
                                     e.currentTarget.src = "https://images.unsplash.com/photo-1531651008558-ed1740375b39?auto=format&fit=crop&q=80&w=600";
                                 }}
                             />
@@ -140,23 +173,16 @@ const Home: React.FC = () => {
                     )}
 
                     <div className={`flex flex-col items-center p-8 text-center relative z-10 ${service.image ? '-mt-12' : ''}`}>
-                    
-                    {/* Decorative Elements */}
                     <div className="absolute top-4 right-4 text-amber-500/30 group-hover:text-amber-400/80 transition-colors duration-500 animate-float">✧</div>
-
-                    {/* Icon Bubble */}
                     <div className={`mb-6 p-4 rounded-full bg-black/60 border border-amber-500/30 text-amber-400 group-hover:text-amber-100 group-hover:bg-gradient-to-br group-hover:from-maroon-800 group-hover:to-amber-700 group-hover:border-amber-400/50 transform group-hover:scale-110 transition-all duration-500 shadow-[0_0_15px_rgba(251,191,36,0.1)] backdrop-blur-xl ${service.image ? 'shadow-2xl' : ''}`}>
                         {getIcon(service.id)}
                     </div>
                     
                     <h3 className="text-2xl font-cinzel font-bold mb-4 text-amber-100 group-hover:text-amber-300 transition-colors tracking-wide">{t(service.id) || service.name}</h3>
-                    
                     <div className="w-16 h-px bg-amber-500/30 mb-6 group-hover:w-32 group-hover:bg-gradient-to-r group-hover:from-transparent group-hover:via-amber-400 group-hover:to-transparent transition-all duration-700"></div>
-                    
                     <p className="text-amber-200/60 font-lora text-sm leading-7 mb-8 group-hover:text-amber-100/90 transition-colors">
                         {t(`${service.id}Desc`) || service.description}
                     </p>
-
                     <div className="mt-auto opacity-0 group-hover:opacity-100 transition-all duration-500 transform translate-y-4 group-hover:translate-y-0">
                         <span className="text-amber-400 text-xs font-bold uppercase tracking-[0.2em] flex items-center gap-2 group-hover:gap-3 transition-all">
                             Enter <span className="text-lg leading-none">›</span>
@@ -168,7 +194,6 @@ const Home: React.FC = () => {
             );
           })}
 
-          {/* ADMIN CONFIGURATION CARD */}
           {isAdmin && (
              <Link 
                 to="/admin/config" 

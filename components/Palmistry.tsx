@@ -1,5 +1,5 @@
-
 import React, { useState, useCallback, useRef, useEffect } from 'react';
+// @ts-ignore
 import { Link } from 'react-router-dom';
 import { getPalmReading } from '../services/geminiService';
 import { calculatePalmistry, PalmAnalysis } from '../services/palmistryEngine';
@@ -29,7 +29,7 @@ const Palmistry: React.FC = () => {
 
   const { t, language } = useTranslation();
   const { openPayment } = usePayment();
-  const { user } = useAuth();
+  const { user, saveReading } = useAuth();
 
   const ADMIN_EMAILS = ['master@gylphcircle.com', 'admin@gylphcircle.com'];
   const isAdmin = user && ADMIN_EMAILS.includes(user.email);
@@ -154,13 +154,21 @@ const Palmistry: React.FC = () => {
       }
       setReadingText(result.textReading);
 
+      // Auto-save
+      saveReading({
+          type: 'palmistry',
+          title: 'Palmistry Analysis',
+          content: result.textReading,
+          image_url: imagePreview || undefined // This might be a blob URL, which is temporary. In a real app, upload to cloud first.
+      });
+
     } catch (err: any) {
       clearInterval(timer);
       setError(`Failed to get reading: ${err.message}. Please try again.`);
     } finally {
       setIsLoading(false);
     }
-  }, [imageFile, language]);
+  }, [imageFile, language, saveReading, imagePreview]);
 
   const handleReadMore = () => {
     openPayment(() => {

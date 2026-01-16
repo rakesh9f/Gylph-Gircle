@@ -1,3 +1,4 @@
+
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import Card from './Card';
 import Button from './Button';
@@ -30,7 +31,7 @@ class ErrorBoundary extends Component<Props, ErrorBoundaryState> {
 
   private handleRetry = () => {
     this.setState({ hasError: false, error: null });
-    window.location.reload();
+    // Removed window.location.reload() to allow soft reset (remounting children)
   };
 
   public render(): ReactNode {
@@ -46,16 +47,18 @@ class ErrorBoundary extends Component<Props, ErrorBoundaryState> {
               </div>
               
               <h2 className="text-2xl font-cinzel font-bold text-amber-100 mb-2">
-                Cosmic Interference
+                Cosmic Interference Detected
               </h2>
               
               <p className="text-amber-200/60 font-lora mb-6">
-                The stars are momentarily misaligned. We encountered an unexpected error in the mystical fabric.
+                The stars are momentarily misaligned. We encountered an interruption in the mystical fabric.
               </p>
 
-              <div className="bg-black/40 p-3 rounded mb-6 text-xs text-red-300 font-mono text-left overflow-auto max-h-32">
-                {this.state.error?.message}
-              </div>
+              {this.state.error && (
+                <div className="bg-black/40 p-3 rounded mb-6 text-xs text-red-300 font-mono text-left overflow-auto max-h-32 border border-red-900/30">
+                  {this.state.error.message}
+                </div>
+              )}
 
               <Button onClick={this.handleRetry} className="w-full bg-red-900/50 hover:bg-red-800 border-red-500/50">
                 Realign & Retry

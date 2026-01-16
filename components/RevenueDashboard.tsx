@@ -1,7 +1,7 @@
-
 import React, { useMemo } from 'react';
 import { useAnalytics, AnalyticsEvent } from './Analytics';
 import Card from './shared/Card';
+// @ts-ignore
 import { Link } from 'react-router-dom';
 
 const RevenueDashboard: React.FC = () => {

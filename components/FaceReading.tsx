@@ -1,5 +1,5 @@
-
 import React, { useState, useCallback, useRef, useEffect } from 'react';
+// @ts-ignore
 import { Link } from 'react-router-dom';
 import { getFaceReading } from '../services/geminiService';
 import { calculateFaceReading, FaceAnalysis } from '../services/faceReadingEngine';

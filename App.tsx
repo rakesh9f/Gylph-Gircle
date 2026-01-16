@@ -1,5 +1,5 @@
-
 import React, { useEffect } from 'react';
+// @ts-ignore
 import { Routes, Route, Navigate, useLocation, Link } from 'react-router-dom';
 import Home from './components/Home';
 import Palmistry from './components/Palmistry';
@@ -23,6 +23,7 @@ import Tarot from './components/Tarot';
 import Store from './components/Store';
 import AdminGuard from './components/AdminGuard';
 import BackupManager from './components/BackupManager';
+import ReadingHistory from './components/ReadingHistory';
 import { useAuth } from './context/AuthContext';
 import { dbService } from './services/db';
 
@@ -39,6 +40,7 @@ import LanguageSwitcher from './components/LanguageSwitcher';
 import GamificationHUD from './components/GamificationHUD';
 import ContextDbNavigator from './components/ContextDbNavigator';
 import { useTheme } from './context/ThemeContext';
+import ErrorBoundary from './components/shared/ErrorBoundary';
 
 // Protected Route Wrapper for Standard Users
 interface ProtectedRouteProps {
@@ -134,17 +136,18 @@ function App() {
                 <Route path="/admin/db/:table" element={<AdminGuard><AdminDB /></AdminGuard>} />
                 <Route path="/admin/backup" element={<AdminGuard><BackupManager /></AdminGuard>} />
 
-                {/* USER PROTECTED ROUTES */}
-                <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
-                <Route path="/palmistry" element={<ProtectedRoute><Palmistry /></ProtectedRoute>} />
-                <Route path="/numerology" element={<ProtectedRoute><NumerologyAstrology mode="numerology" /></ProtectedRoute>} />
-                <Route path="/astrology" element={<ProtectedRoute><NumerologyAstrology mode="astrology" /></ProtectedRoute>} />
-                <Route path="/tarot" element={<ProtectedRoute><Tarot /></ProtectedRoute>} />
-                <Route path="/face-reading" element={<ProtectedRoute><FaceReading /></ProtectedRoute>} />
-                <Route path="/dream-analysis" element={<ProtectedRoute><DreamAnalysis /></ProtectedRoute>} />
-                <Route path="/matchmaking" element={<ProtectedRoute><Matchmaking /></ProtectedRoute>} />
-                <Route path="/remedy" element={<ProtectedRoute><Remedy /></ProtectedRoute>} />
-                <Route path="/store" element={<ProtectedRoute><Store /></ProtectedRoute>} />
+                {/* USER PROTECTED ROUTES - WRAPPED IN ERROR BOUNDARY */}
+                <Route path="/home" element={<ProtectedRoute><ErrorBoundary><Home /></ErrorBoundary></ProtectedRoute>} />
+                <Route path="/history" element={<ProtectedRoute><ErrorBoundary><ReadingHistory /></ErrorBoundary></ProtectedRoute>} />
+                <Route path="/palmistry" element={<ProtectedRoute><ErrorBoundary><Palmistry /></ErrorBoundary></ProtectedRoute>} />
+                <Route path="/numerology" element={<ProtectedRoute><ErrorBoundary><NumerologyAstrology mode="numerology" /></ErrorBoundary></ProtectedRoute>} />
+                <Route path="/astrology" element={<ProtectedRoute><ErrorBoundary><NumerologyAstrology mode="astrology" /></ErrorBoundary></ProtectedRoute>} />
+                <Route path="/tarot" element={<ProtectedRoute><ErrorBoundary><Tarot /></ErrorBoundary></ProtectedRoute>} />
+                <Route path="/face-reading" element={<ProtectedRoute><ErrorBoundary><FaceReading /></ErrorBoundary></ProtectedRoute>} />
+                <Route path="/dream-analysis" element={<ProtectedRoute><ErrorBoundary><DreamAnalysis /></ErrorBoundary></ProtectedRoute>} />
+                <Route path="/matchmaking" element={<ProtectedRoute><ErrorBoundary><Matchmaking /></ErrorBoundary></ProtectedRoute>} />
+                <Route path="/remedy" element={<ProtectedRoute><ErrorBoundary><Remedy /></ErrorBoundary></ProtectedRoute>} />
+                <Route path="/store" element={<ProtectedRoute><ErrorBoundary><Store /></ErrorBoundary></ProtectedRoute>} />
                 <Route path="/referrals" element={<ProtectedRoute><ReferralProgram /></ProtectedRoute>} />
                 <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
                 

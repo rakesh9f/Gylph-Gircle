@@ -15,10 +15,42 @@ const DB_SESSION_KEY = 'glyph_circle_mock_db';
 
 export const MOCK_DATABASE: MockDatabase = {
   users: [
-    { id: 1, name: 'rocky', role: 'admin', status: 'active', email: 'rocky@glyph.co' },
-    { id: 2, name: 'Minti', role: 'admin', status: 'active', email: 'minti@glyph.co' },
-    { id: 3, name: 'Test User', role: 'user', status: 'inactive', email: 'test@example.com' },
-    { id: 4, name: 'Jane Doe', role: 'user', status: 'active', email: 'jane.d@example.com' },
+    { 
+      id: 1, 
+      name: 'rocky', 
+      role: 'admin', 
+      status: 'active', 
+      email: 'rocky@glyph.co', 
+      biometric_id: null, 
+      uses_biometrics: false 
+    },
+    { 
+      id: 2, 
+      name: 'Minti', 
+      role: 'admin', 
+      status: 'active', 
+      email: 'minti@glyph.co', 
+      biometric_id: null, 
+      uses_biometrics: false 
+    },
+    { 
+      id: 3, 
+      name: 'Test User', 
+      role: 'user', 
+      status: 'inactive', 
+      email: 'test@example.com', 
+      biometric_id: null, 
+      uses_biometrics: false 
+    },
+    { 
+      id: 4, 
+      name: 'Jane Doe', 
+      role: 'user', 
+      status: 'active', 
+      email: 'jane.d@example.com', 
+      biometric_id: null, 
+      uses_biometrics: false 
+    },
   ],
   cloud_providers: [
     { 
@@ -264,21 +296,9 @@ export const getMockDb = (): MockDatabase => {
         }
     });
 
-    if (JSON.stringify(finalDb) !== storedDbStr) {
-        sessionStorage.setItem(DB_SESSION_KEY, JSON.stringify(finalDb));
-    }
-
     return finalDb;
   } catch (error) {
     console.error("Failed to read mock DB from sessionStorage:", error);
     return JSON.parse(JSON.stringify(MOCK_DATABASE));
-  }
-};
-
-export const setMockDb = (db: MockDatabase): void => {
-  try {
-    sessionStorage.setItem(DB_SESSION_KEY, JSON.stringify(db));
-  } catch (error) {
-    console.error("Failed to write mock DB to sessionStorage:", error);
   }
 };

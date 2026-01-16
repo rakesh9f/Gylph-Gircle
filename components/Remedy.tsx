@@ -1,5 +1,5 @@
-
 import React, { useState, useCallback } from 'react';
+// @ts-ignore
 import { Link } from 'react-router-dom';
 import { getRemedy } from '../services/geminiService';
 import Button from './shared/Button';

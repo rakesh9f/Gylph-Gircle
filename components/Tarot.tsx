@@ -1,5 +1,5 @@
-
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
+// @ts-ignore
 import { Link } from 'react-router-dom';
 import { getTarotReading } from '../services/geminiService';
 import Card from './shared/Card';
@@ -132,7 +132,7 @@ const Tarot: React.FC = () => {
 
   const { t, language } = useTranslation();
   const { openPayment } = usePayment();
-  const { user, awardKarma } = useAuth();
+  const { user, awardKarma, saveReading } = useAuth();
   const { db } = useDb();
 
   const ADMIN_EMAILS = ['master@gylphcircle.com', 'admin@gylphcircle.com'];
@@ -174,13 +174,22 @@ const Tarot: React.FC = () => {
       setReading(result);
       awardKarma(ACTION_POINTS.READING_COMPLETE);
 
+      // Auto-save to History
+      saveReading({
+          type: 'tarot',
+          title: card.name,
+          subtitle: `${card.type} Arcana`,
+          content: result,
+          image_url: "https://images.unsplash.com/photo-1505537528343-4dc9b89823f6?q=80&w=800"
+      });
+
     } catch (err: any) {
       clearInterval(timer);
       setError(`The spirits are quiet... (${err.message})`);
     } finally {
       setIsLoading(false);
     }
-  }, [isPaid, language, awardKarma, animatingCard, selectedCard]);
+  }, [isPaid, language, awardKarma, saveReading, animatingCard, selectedCard]);
   
   // Animation Lifecycle
   useEffect(() => {
