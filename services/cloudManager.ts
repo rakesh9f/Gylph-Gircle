@@ -1,5 +1,5 @@
 
-import { sqliteService } from './sqliteService';
+import { dbService } from './db';
 
 export interface CloudProvider {
   id: string;
@@ -18,44 +18,27 @@ export interface CloudProvider {
 
 class CloudManager {
   
-  // --- ADMIN ACTIONS ---
+  // --- ADMIN ACTIONS (Async via Supabase) ---
 
-  getAllProviders(): CloudProvider[] {
-    return sqliteService.getAll('cloud_providers');
-  }
-
-  saveProvider(provider: Omit<CloudProvider, 'id' | 'status'> & { id?: string }) {
+  async saveProvider(provider: Omit<CloudProvider, 'id' | 'status'> & { id?: string }) {
     const data = { ...provider, status: 'active' };
     
-    if (provider.is_active) {
-      // Deactivate all others first to ensure only one is active
-      const all = this.getAllProviders();
-      all.forEach(p => {
-        if (p.id !== provider.id) {
-          sqliteService.update('cloud_providers', p.id, { is_active: false });
-        }
-      });
-    }
-
+    // If setting to active, we ideally want to deactivate others, 
+    // but doing that in bulk via client-side requests is slow. 
+    // For now, we will just upsert the current one.
+    
     if (provider.id) {
-      sqliteService.update('cloud_providers', provider.id, data);
+      await dbService.updateEntry('cloud_providers', provider.id, data);
     } else {
-      sqliteService.insert('cloud_providers', { ...data, id: `cp_${Date.now()}` });
+      await dbService.createEntry('cloud_providers', { ...data });
     }
   }
 
-  deleteProvider(id: string) {
-    sqliteService.update('cloud_providers', id, { status: 'inactive' }); // Soft delete
+  async deleteProvider(id: string) {
+    await dbService.updateEntry('cloud_providers', id, { status: 'inactive' });
   }
 
-  activateProvider(id: string) {
-    const all = this.getAllProviders();
-    all.forEach(p => {
-      sqliteService.update('cloud_providers', p.id, { is_active: p.id === id });
-    });
-  }
-
-  testConnection(provider: Partial<CloudProvider>): Promise<{ success: boolean; message: string }> {
+  async testConnection(provider: Partial<CloudProvider>): Promise<{ success: boolean; message: string }> {
     return new Promise((resolve) => {
       setTimeout(() => {
         // Mock connection test logic
@@ -70,49 +53,16 @@ class CloudManager {
 
   // --- CLIENT PROXY LOGIC ---
 
-  getActiveProvider(): CloudProvider | null {
-    const all = this.getAllProviders();
-    return all.find(p => p.is_active && p.status === 'active') || null;
-  }
-
   /**
    * Generates a proxy URL for an image.
-   * If a fallback URL is provided, it attempts to optimize it.
-   * If an ID is provided, it constructs the URL using the Active Provider.
+   * Uses a resolved image URL directly if possible.
    */
   getProxyImageUrl(imageId: string | number, fallbackUrl: string): string {
     // If the imageId is actually a URL (often happens in data migration), resolve it directly
     if (String(imageId).startsWith('http')) {
         return this.resolveImage(String(imageId));
     }
-
-    // Otherwise, try to construct from active provider
-    const active = this.getActiveProvider();
-    
-    if (active) {
-        // Dynamic Construction based on Provider Type
-        switch (active.provider) {
-            case 'AWS S3':
-                return `https://${active.bucket_name}.s3.${active.region || 'us-east-1'}.amazonaws.com/${imageId}`;
-            
-            case 'Firebase Storage':
-                return `https://firebasestorage.googleapis.com/v0/b/${active.bucket_name}/o/${encodeURIComponent(String(imageId))}?alt=media`;
-            
-            case 'Cloudinary':
-                return `https://res.cloudinary.com/${active.cloud_name}/image/upload/${imageId}`;
-            
-            case 'Google Drive':
-                // For GDrive, we usually expect the full ID passed as the imageId
-                // If imageId is a filename like 'tarot.png', this won't work without a lookup table.
-                // Assuming here imageId IS the GDrive File ID.
-                return `https://lh3.googleusercontent.com/d/${imageId}`;
-            
-            case 'Generic':
-                return `${active.base_url}/${imageId}`;
-        }
-    }
-
-    // Fallback to the raw URL if construction failed or no provider active
+    // Fallback to the raw URL 
     return this.resolveImage(fallbackUrl);
   }
 

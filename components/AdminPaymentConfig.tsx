@@ -1,14 +1,15 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Card from './shared/Card';
 import Button from './shared/Button';
+import { useDb } from '../hooks/useDb';
 import { paymentManager, PaymentProvider } from '../services/paymentManager';
 
 const PROVIDER_TYPES = ['razorpay', 'stripe', 'paypal'];
 
 const AdminPaymentConfig: React.FC = () => {
-  const [providers, setProviders] = useState<PaymentProvider[]>([]);
+  const { db, refresh } = useDb();
   const [formData, setFormData] = useState<Partial<PaymentProvider>>({ provider_type: 'razorpay' });
   const [isEditing, setIsEditing] = useState(false);
   const [testStatus, setTestStatus] = useState<{ success?: boolean; message?: string }>({});
@@ -18,14 +19,8 @@ const AdminPaymentConfig: React.FC = () => {
   const [flashError, setFlashError] = useState<string | null>(null);
   const [isFlashing, setIsFlashing] = useState(false);
 
-  useEffect(() => {
-    refreshList();
-  }, []);
-
-  const refreshList = () => {
-    const list = paymentManager.getAllProviders().filter(p => p.status === 'active');
-    setProviders(list);
-  };
+  // Get from DB Context
+  const providers: PaymentProvider[] = db.payment_providers || [];
 
   const handleEdit = (provider: PaymentProvider) => {
     setFormData(provider);
@@ -44,68 +39,42 @@ const AdminPaymentConfig: React.FC = () => {
   const triggerFlash = (message: string) => {
       setFlashError(message);
       setIsFlashing(true);
-      if (navigator.vibrate) navigator.vibrate([100, 50, 100]); // Error haptic pattern
-      
-      // Reset flash animation class after animation completes
+      if (navigator.vibrate) navigator.vibrate([100, 50, 100]); 
       setTimeout(() => setIsFlashing(false), 800);
   };
 
   const validateForm = (): boolean => {
       if (!formData.name?.trim()) {
-          triggerFlash("Configuration Name is missing. Please identify this gateway.");
+          triggerFlash("Configuration Name is missing.");
           return false;
       }
       if (!formData.api_key?.trim()) {
-          triggerFlash("Public API Key / Client ID is required for transaction initiation.");
+          triggerFlash("Public API Key is required.");
           return false;
       }
-
-      // Specific Provider Validation
-      if (formData.provider_type === 'razorpay') {
-          if (!formData.api_key.startsWith('rzp_')) {
-              triggerFlash("Invalid Razorpay Key. It must start with 'rzp_'.");
-              return false;
-          }
-          if (!formData.api_secret?.trim()) {
-              triggerFlash("Razorpay requires an API Secret to verify signatures.");
-              return false;
-          }
-      }
-
-      if (formData.provider_type === 'stripe') {
-          if (!formData.api_key.startsWith('pk_')) {
-              triggerFlash("Invalid Stripe Publishable Key. It must start with 'pk_'.");
-              return false;
-          }
-          if (!formData.api_secret?.trim()) {
-              triggerFlash("Stripe requires a Secret Key (sk_) for backend processing.");
-              return false;
-          }
-      }
-
       return true;
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!validateForm()) return;
 
-    paymentManager.saveProvider(formData as any);
+    await paymentManager.saveProvider(formData as any);
     setIsEditing(false);
-    refreshList();
+    refresh();
     setFlashError(null);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (window.confirm("Are you sure you want to remove this provider configuration?")) {
-        paymentManager.deleteProvider(id);
-        refreshList();
+        await paymentManager.deleteProvider(id);
+        refresh();
     }
   };
 
-  const handleToggleActive = (id: string, e: React.MouseEvent) => {
+  const handleToggleActive = async (id: string, currentStatus: boolean, e: React.MouseEvent) => {
     e.stopPropagation();
-    paymentManager.toggleActive(id);
-    refreshList();
+    await paymentManager.toggleActive(id, currentStatus);
+    refresh();
   };
 
   const handleTestTransaction = async () => {
@@ -139,7 +108,7 @@ const AdminPaymentConfig: React.FC = () => {
                     </div>
                     
                     <div className="space-y-3">
-                        {providers.map(p => (
+                        {providers.filter(p => p.status === 'active').map(p => (
                             <div 
                                 key={p.id} 
                                 onClick={() => handleEdit(p)}
@@ -150,7 +119,7 @@ const AdminPaymentConfig: React.FC = () => {
                                         {p.provider_type}
                                     </span>
                                     <button 
-                                        onClick={(e) => handleToggleActive(p.id, e)}
+                                        onClick={(e) => handleToggleActive(p.id, p.is_active, e)}
                                         className={`flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${p.is_active ? 'bg-green-900/30 text-green-400 border-green-600' : 'bg-gray-700 text-gray-400 border-gray-600'}`}
                                     >
                                         {p.is_active ? '● LIVE' : '○ OFF'}

@@ -14,13 +14,33 @@ const Home: React.FC = () => {
   const [bgIndex, setBgIndex] = useState(0);
   const { db } = useDb();
   const { user } = useAuth();
-  const activeFeature = db.featured_content?.find(c => c.status === 'active');
+  const activeFeature = db.featured_content?.find((c: any) => c.status === 'active');
   const { t } = useTranslation();
   const [showBioSetup, setShowBioSetup] = useState(false);
 
-  // Merge static constants with DB data for services
-  const services = (db.services || []).filter((s: any) => s.status === 'active');
-  const displayServices = services.length > 0 ? services : SERVICE_OPTIONS;
+  // --- DYNAMIC SERVICES LOGIC ---
+  // Merge static constant metadata (like icons) with dynamic DB data (images, names)
+  const dbServices = (db.services || []);
+  
+  const displayServices = SERVICE_OPTIONS.map(staticOpt => {
+      // Find matching entry in DB (by ID)
+      const dynamicEntry = dbServices.find((s: any) => s.id === staticOpt.id);
+      
+      // If found in DB, prefer DB values for name/desc/image
+      if (dynamicEntry) {
+          return {
+              ...staticOpt,
+              ...dynamicEntry, // Overwrites name, description, and adds image if present
+              // Ensure we use the static icon as fallback if DB doesn't have one (DB usually won't have React Node icons)
+              icon: staticOpt.icon
+          };
+      }
+      return staticOpt;
+  }).filter(s => {
+      // Filter out if marked inactive in DB
+      if (s.status === 'inactive') return false;
+      return true;
+  });
 
   const ADMIN_EMAILS = ['master@gylphcircle.com', 'admin@gylphcircle.com'];
   const isAdmin = user && ADMIN_EMAILS.includes(user.email);
@@ -30,7 +50,6 @@ const Home: React.FC = () => {
       setBgIndex((prevIndex) => (prevIndex + 1) % BACKGROUND_IMAGES.length);
     }, 8000); 
     
-    // Check if we should show biometric setup (if user logged in but hasn't set it up)
     if (user && !localStorage.getItem('glyph_bio_registered')) {
         biometricService.isAvailable().then(avail => {
             if (avail) setShowBioSetup(true);
@@ -48,9 +67,7 @@ const Home: React.FC = () => {
       if(btn) btn.innerText = "Scanning...";
       
       try {
-          // Add visual feedback
           if (navigator.vibrate) navigator.vibrate(50);
-
           const credId = await biometricService.register(user.id, user.name);
           
           if (credId) {
@@ -59,24 +76,16 @@ const Home: React.FC = () => {
               localStorage.setItem('glyph_bio_registered', 'true');
               setShowBioSetup(false);
           } else {
-              // This case happens if the user cancels or the device returns nothing but doesn't throw
-              // Or if permission policy blocked it silently returning null
               alert("Registration incomplete. Please try again.");
               if(btn) btn.innerText = "Setup";
           }
       } catch (err: any) {
           console.error(err);
-          // Only alert if it's a real error, not just a cancel
           if (err.name !== 'NotAllowedError' && err.message !== 'The operation was canceled.') {
              alert(`Registration failed: ${err.message || 'Unknown error'}`);
           }
           if(btn) btn.innerText = "Retry";
       }
-  };
-
-  const getIcon = (id: string) => {
-      const staticOpt = SERVICE_OPTIONS.find(o => o.id === id);
-      return staticOpt ? staticOpt.icon : <span className="text-2xl">✨</span>;
   };
 
   return (
@@ -117,7 +126,7 @@ const Home: React.FC = () => {
             </p>
         </div>
         
-        {/* Biometric Setup Prompt - Clickable Banner */}
+        {/* Biometric Setup Prompt */}
         {showBioSetup && (
             <div className="w-full max-w-md mb-8 animate-fade-in-up">
                 <div 
@@ -172,6 +181,10 @@ const Home: React.FC = () => {
         {/* Services Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 xl:gap-10 max-w-7xl mx-auto w-full px-2">
           {displayServices.map((service: any, idx: number) => {
+            // Determine image to show: prefer DB image (service.image) if available and valid
+            const hasImage = service.image && service.image.length > 5;
+            const imageUrl = hasImage ? cloudManager.resolveImage(service.image) : null;
+
             return (
                 <Link 
                     to={service.path} 
@@ -182,24 +195,24 @@ const Home: React.FC = () => {
                 <div className="absolute -inset-0.5 bg-gradient-to-br from-amber-600/20 to-maroon-600/20 rounded-2xl blur opacity-0 group-hover:opacity-100 transition duration-700"></div>
                 <Card className="h-full bg-gradient-to-b from-gray-900/80 to-black/80 backdrop-blur-md border border-amber-500/20 group-hover:border-amber-400/50 group-hover:bg-black/80 transition-all duration-500 relative overflow-hidden flex flex-col">
                     
-                    {service.image && (
+                    {imageUrl && (
                         <div className="h-48 feature-image-container border-b border-amber-500/10">
                             <img 
-                                src={cloudManager.resolveImage(service.image)} 
+                                src={imageUrl} 
                                 alt={service.name} 
                                 className="dynamic-image opacity-80 group-hover:opacity-100"
                                 onError={(e) => {
-                                    e.currentTarget.src = "https://images.unsplash.com/photo-1531651008558-ed1740375b39?auto=format&fit=crop&q=80&w=600";
+                                    e.currentTarget.style.display = 'none'; // Hide if broken
                                 }}
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent pointer-events-none"></div>
                         </div>
                     )}
 
-                    <div className={`flex flex-col items-center p-8 text-center relative z-10 ${service.image ? '-mt-12' : ''}`}>
+                    <div className={`flex flex-col items-center p-8 text-center relative z-10 ${imageUrl ? '-mt-12' : ''}`}>
                     <div className="absolute top-4 right-4 text-amber-500/30 group-hover:text-amber-400/80 transition-colors duration-500 animate-float">✧</div>
-                    <div className={`mb-6 p-4 rounded-full bg-black/60 border border-amber-500/30 text-amber-400 group-hover:text-amber-100 group-hover:bg-gradient-to-br group-hover:from-maroon-800 group-hover:to-amber-700 group-hover:border-amber-400/50 transform group-hover:scale-110 transition-all duration-500 shadow-[0_0_15px_rgba(251,191,36,0.1)] backdrop-blur-xl ${service.image ? 'shadow-2xl' : ''}`}>
-                        {getIcon(service.id)}
+                    <div className={`mb-6 p-4 rounded-full bg-black/60 border border-amber-500/30 text-amber-400 group-hover:text-amber-100 group-hover:bg-gradient-to-br group-hover:from-maroon-800 group-hover:to-amber-700 group-hover:border-amber-400/50 transform group-hover:scale-110 transition-all duration-500 shadow-[0_0_15px_rgba(251,191,36,0.1)] backdrop-blur-xl ${imageUrl ? 'shadow-2xl' : ''}`}>
+                        {service.icon}
                     </div>
                     
                     <h3 className="text-2xl font-cinzel font-bold mb-4 text-amber-100 group-hover:text-amber-300 transition-colors tracking-wide">{t(service.id) || service.name}</h3>

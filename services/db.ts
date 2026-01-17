@@ -1,13 +1,11 @@
 
-import { v4 as uuidv4 } from 'uuid';
-import { sqliteService } from './sqliteService';
+import { supabase } from './supabaseClient';
 
-// Types (Keep existing types)
+// Types
 export interface User {
   id: string;
   email: string;
   name: string;
-  password?: string;
   role: 'user' | 'admin';
   credits: number;
   created_at: string;
@@ -24,6 +22,7 @@ export interface Reading {
   timestamp: string;
   is_favorite: boolean;
   paid: boolean;
+  meta_data?: any;
 }
 
 export interface Transaction {
@@ -35,134 +34,145 @@ export interface Transaction {
     created_at: string;
 }
 
-// Wrapper class that now bridges logic to sqliteService
-class LocalDatabase {
+class SupabaseDatabase {
   
-  constructor() {
-    // Note: sqliteService.init() is called by DbContext provider.
-    // Methods here assume init is done or in progress.
-  }
+  constructor() {}
 
-  nuclearReset() {
-    console.warn("Nuclear reset logic now handled by SQLiteService migration checks.");
-  }
+  // --- USER METHODS ---
 
-  validateUser(email: string, pass: string): User | null {
-    const users: User[] = sqliteService.getAll('users');
-    const user = users.find(u => u.email === email && u.password === pass);
-    return user || null;
-  }
-
-  getAdminByEmail(email: string): User | null {
-    const users: User[] = sqliteService.getAll('users');
-    return users.find(u => u.email === email && u.role === 'admin') || null;
-  }
-
-  getAllUsers(): User[] {
-    return sqliteService.getAll('users');
-  }
-
-  getUser(id: string): User | undefined {
-    // getById returns generic object, cast to User
-    return sqliteService.getById('users', id) as User;
-  }
-
-  async createUser(email: string, name: string, password?: string): Promise<User> {
-      const users: User[] = sqliteService.getAll('users');
-      if (users.find(u => u.email === email)) {
-          throw new Error("User already exists with this email");
+  async getUserProfile(userId: string): Promise<User | null> {
+      const { data, error } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', userId)
+          .single();
+      
+      if (error) {
+          console.warn("Supabase: Could not fetch user profile.", error.message);
+          return null;
       }
-      
-      const newUser: User = {
-          id: uuidv4(),
-          email,
-          name,
-          password,
-          role: 'user',
-          credits: 0,
-          created_at: new Date().toISOString()
-      };
-      
-      // Await persistence
-      await sqliteService.insert('users', newUser);
-      return newUser;
+      return data;
   }
 
-  async createGoogleUser(email: string, name: string, googleId: string): Promise<User> {
-      const users: User[] = sqliteService.getAll('users');
-      let user = users.find(u => u.email === email);
+  async createUserProfile(user: Partial<User>) {
+      const { data, error } = await supabase
+          .from('users')
+          .insert([user])
+          .select()
+          .single();
       
-      if (!user) {
-          user = {
-              id: 'g-' + Date.now(),
-              email,
-              name,
-              role: 'user',
-              credits: 10,
-              created_at: new Date().toISOString(),
-              password: 'google-auth-user'
-          };
-          
-          // Auto-Admin logic
-          if(email === 'rakesh9f@gmail.com') {
-              user.role = 'admin';
-              user.credits = 99999;
-          }
-          
-          await sqliteService.insert('users', user);
+      if (error) {
+          console.error("Supabase: Error creating profile:", error.message);
+          throw error;
       }
-      return user;
+      return data;
   }
 
-  getReadings(userId: string): Reading[] {
-      const readings: Reading[] = sqliteService.getAll('readings');
-      // Note: Filter in memory for simplicity with current generic getAll
-      return readings
-        .filter(r => r.user_id === userId)
-        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  // --- READINGS ---
+
+  async getReadings(userId: string): Promise<Reading[]> {
+      const { data, error } = await supabase
+          .from('readings')
+          .select('*')
+          .eq('user_id', userId)
+          .order('timestamp', { ascending: false });
+
+      if (error) {
+          console.error("Supabase: Error fetching readings:", error.message);
+          return [];
+      }
+      return data || [];
   }
 
-  // Updated to async to ensure persistence awaits
   async saveReading(reading: Omit<Reading, 'id' | 'timestamp' | 'is_favorite'>): Promise<Reading> {
-      const newReading: Reading = {
-          id: uuidv4(),
+      const newReading = {
+          ...reading,
           timestamp: new Date().toISOString(),
           is_favorite: false,
-          ...reading
+          meta_data: reading.meta_data || {}
       };
-      await sqliteService.insert('readings', newReading);
-      return newReading;
+
+      const { data, error } = await supabase
+          .from('readings')
+          .insert([newReading])
+          .select()
+          .single();
+
+      if (error) throw error;
+      return data;
   }
 
-  async toggleFavorite(readingId: string): Promise<Reading | null> {
-      const reading = sqliteService.getById('readings', readingId) as Reading;
-      if (reading) {
-          const newVal = !reading.is_favorite;
-          await sqliteService.update('readings', readingId, { is_favorite: newVal ? 1 : 0 }); // Store boolean as int/bit
-          return { ...reading, is_favorite: newVal };
+  async toggleFavorite(readingId: string, currentStatus: boolean): Promise<boolean> {
+      const { error } = await supabase
+          .from('readings')
+          .update({ is_favorite: !currentStatus })
+          .eq('id', readingId);
+          
+      if (error) {
+          console.error("Error toggling favorite:", error);
+          return currentStatus;
       }
-      return null;
+      return !currentStatus;
   }
+
+  // --- CREDITS & TRANSACTIONS ---
 
   async addCredits(userId: string, amount: number): Promise<User> {
-      const user = this.getUser(userId);
-      if (user) {
-          const newCredits = (user.credits || 0) + amount;
-          await sqliteService.update('users', userId, { credits: newCredits });
-          return { ...user, credits: newCredits };
-      }
-      throw new Error("User not found");
+      // 1. Get current credits
+      const user = await this.getUserProfile(userId);
+      if (!user) throw new Error("User not found");
+
+      const newCredits = (user.credits || 0) + amount;
+
+      // 2. Update
+      const { data, error } = await supabase
+          .from('users')
+          .update({ credits: newCredits })
+          .eq('id', userId)
+          .select()
+          .single();
+
+      if (error) throw error;
+      return data;
   }
 
   async recordTransaction(transaction: Omit<Transaction, 'id' | 'created_at'>): Promise<Transaction> {
-      const newTransaction: Transaction = {
-          id: uuidv4(),
-          created_at: new Date().toISOString(),
-          ...transaction
+      const newTx = {
+          ...transaction,
+          created_at: new Date().toISOString()
       };
-      await sqliteService.insert('transactions', newTransaction);
-      return newTransaction;
+
+      const { data, error } = await supabase
+          .from('transactions')
+          .insert([newTx])
+          .select()
+          .single();
+
+      if (error) throw error;
+      return data;
+  }
+
+  // --- GENERIC ADMIN METHODS ---
+  
+  async getAll(table: string) {
+      const { data, error } = await supabase.from(table).select('*');
+      if (error) {
+          console.warn(`Failed to fetch table ${table}: ${error.message}`);
+          return [];
+      }
+      return data || [];
+  }
+
+  async updateEntry(table: string, id: string | number, updates: any) {
+      const { error } = await supabase.from(table).update(updates).eq('id', id);
+      if (error) throw error;
+  }
+
+  async createEntry(table: string, entry: any) {
+      const { data, error } = await supabase.from(table).insert([entry]).select();
+      if (error) throw error;
+      return data;
   }
 }
 
-export const dbService = new LocalDatabase();
+export const dbService = new SupabaseDatabase();

@@ -1,5 +1,5 @@
 
-import { sqliteService } from './sqliteService';
+import { dbService } from './db';
 
 export interface PaymentProvider {
   id: string;
@@ -18,59 +18,31 @@ export interface PaymentProvider {
 
 class PaymentManager {
   
-  // --- ADMIN ACTIONS ---
+  // --- ADMIN ACTIONS (Async via Supabase) ---
 
-  getAllProviders(): PaymentProvider[] {
-    return sqliteService.getAll('payment_providers');
-  }
-
-  saveProvider(provider: Omit<PaymentProvider, 'id' | 'status'> & { id?: string }) {
+  async saveProvider(provider: Omit<PaymentProvider, 'id' | 'status'> & { id?: string }) {
     const data = { 
         ...provider, 
         status: 'active' as const,
         updated_at: new Date().toISOString()
     };
     
-    // Logic: Multiple providers can be active, but only one per region/type usually.
-    // For simplicity, we allow enabling/disabling individually.
-
     if (provider.id) {
-      sqliteService.update('payment_providers', provider.id, data);
+      await dbService.updateEntry('payment_providers', provider.id, data);
     } else {
-      sqliteService.insert('payment_providers', { ...data, id: `pay_${Date.now()}` });
+      await dbService.createEntry('payment_providers', { ...data });
     }
   }
 
-  deleteProvider(id: string) {
-    sqliteService.update('payment_providers', id, { status: 'inactive' }); // Soft delete
+  async deleteProvider(id: string) {
+    await dbService.updateEntry('payment_providers', id, { status: 'inactive' });
   }
 
-  toggleActive(id: string) {
-    const provider = this.getAllProviders().find(p => p.id === id);
-    if (provider) {
-        sqliteService.update('payment_providers', id, { is_active: !provider.is_active });
-    }
+  async toggleActive(id: string, currentStatus: boolean) {
+    await dbService.updateEntry('payment_providers', id, { is_active: !currentStatus });
   }
 
-  // --- ROUTING LOGIC ---
-
-  /**
-   * Determine the best provider for the user's location.
-   * Priority:
-   * 1. Exact Country Match (e.g., 'IN')
-   * 2. 'GLOBAL' fallback
-   */
-  getActiveProvider(countryCode: string = 'GLOBAL'): PaymentProvider | null {
-    const all = this.getAllProviders().filter(p => p.is_active && p.status === 'active');
-    
-    // 1. Try exact match
-    const exact = all.find(p => p.country_codes.split(',').includes(countryCode));
-    if (exact) return exact;
-
-    // 2. Try global/fallback
-    const fallback = all.find(p => p.country_codes.includes('GLOBAL'));
-    return fallback || null;
-  }
+  // --- CLIENT UTILS ---
 
   /**
    * Auto-detect user country based on Timezone or Locale as a heuristic
@@ -85,6 +57,21 @@ class PaymentManager {
     } catch {
         return 'GLOBAL';
     }
+  }
+
+  /**
+   * Helper to get active provider from a list (passed from DbContext)
+   */
+  getActiveProviderFromList(providers: PaymentProvider[], countryCode: string = 'GLOBAL'): PaymentProvider | null {
+    const all = providers.filter(p => p.is_active && p.status === 'active');
+    
+    // 1. Try exact match
+    const exact = all.find(p => p.country_codes.split(',').includes(countryCode));
+    if (exact) return exact;
+
+    // 2. Try global/fallback
+    const fallback = all.find(p => p.country_codes.includes('GLOBAL'));
+    return fallback || null;
   }
 
   testTransaction(provider: PaymentProvider): Promise<{ success: boolean; message: string }> {

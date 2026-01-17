@@ -1,5 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { supabase, isSupabaseConfigured } from '../services/supabaseClient';
 import { dbService, User, Reading } from '../services/db';
 import { ACTION_POINTS, SIGILS, GameStats } from '../services/gamificationConfig';
 
@@ -9,9 +10,9 @@ interface PendingReading {
   content: string;
   subtitle?: string;
   image_url?: string;
+  meta_data?: any;
 }
 
-// Extend User for Gamification
 interface GamifiedUser extends User {
   gamification?: {
     karma: number;
@@ -40,9 +41,8 @@ interface AuthContextType {
   pendingReading: PendingReading | null;
   setPendingReading: (reading: PendingReading | null) => void;
   commitPendingReading: () => void;
-  // Gamification Actions
   awardKarma: (amount: number, actionName?: string) => void;
-  newSigilUnlocked: string | null; // For UI notification
+  newSigilUnlocked: string | null; 
   clearSigilNotification: () => void;
 }
 
@@ -66,19 +66,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [pendingReading, setPendingReading] = useState<PendingReading | null>(null);
   const [newSigilUnlocked, setNewSigilUnlocked] = useState<string | null>(null);
 
-  // --- GAMIFICATION LOGIC ---
+  // --- SYNC GAMIFICATION (Local Storage for UI speed) ---
+  const syncGamification = (dbUser: User): GamifiedUser => {
+      const gamifyData = localStorage.getItem(`glyph_gamify_${dbUser.id}`);
+      let fullUser: GamifiedUser = { ...dbUser };
+      
+      if (gamifyData) {
+          fullUser.gamification = JSON.parse(gamifyData);
+      } else {
+          fullUser.gamification = { karma: 0, streak: 1, lastVisit: new Date().toISOString(), readingsCount: 0, unlockedSigils: [] };
+      }
+      return checkDailyStreak(fullUser);
+  };
+
   const checkDailyStreak = (currentUser: GamifiedUser) => {
       const today = new Date().toDateString();
       const lastVisit = currentUser.gamification?.lastVisit ? new Date(currentUser.gamification.lastVisit).toDateString() : null;
       
       let newStreak = currentUser.gamification?.streak || 0;
-      let karmaAwarded = 0;
-
-      // Initialize if missing
-      if (!currentUser.gamification) {
-          currentUser.gamification = { karma: 0, streak: 1, lastVisit: new Date().toISOString(), readingsCount: 0, unlockedSigils: [] };
-          return currentUser;
-      }
 
       if (lastVisit !== today) {
           const yesterday = new Date();
@@ -87,16 +92,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           if (lastVisit === yesterday.toDateString()) {
               newStreak += 1;
           } else {
-              newStreak = 1; // Reset if broken
+              newStreak = 1; 
           }
           
-          currentUser.gamification.streak = newStreak;
-          currentUser.gamification.lastVisit = new Date().toISOString();
-          currentUser.gamification.karma += ACTION_POINTS.DAILY_LOGIN;
-          karmaAwarded = ACTION_POINTS.DAILY_LOGIN;
-          
-          // Determine logic to persist this update immediately would go here
-          // For now, we rely on the state update loop or dbService update
+          if (currentUser.gamification) {
+              currentUser.gamification.streak = newStreak;
+              currentUser.gamification.lastVisit = new Date().toISOString();
+              currentUser.gamification.karma += ACTION_POINTS.DAILY_LOGIN;
+          }
       }
       return currentUser;
   };
@@ -109,151 +112,149 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           if (!stats.unlockedSigils.includes(sigil.id) && sigil.condition(stats)) {
               stats.unlockedSigils.push(sigil.id);
               setNewSigilUnlocked(sigil.name);
-              // Audio Cue
               if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
           }
       });
   };
 
-  const awardKarma = useCallback((amount: number) => {
-      if (!user) return;
-      
-      setUser(prev => {
-          if (!prev) return null;
-          const updated = { ...prev };
-          if (!updated.gamification) updated.gamification = { karma: 0, streak: 1, lastVisit: new Date().toISOString(), readingsCount: 0, unlockedSigils: [] };
-          
-          updated.gamification.karma += amount;
-          checkSigils(updated);
-          
-          // Persist to local storage mock (In a real app, API call)
-          localStorage.setItem(`glyph_gamify_${updated.id}`, JSON.stringify(updated.gamification));
-          
-          return updated;
-      });
-  }, [user]);
+  // --- MAIN REFRESH LOGIC ---
+  const refreshUser = useCallback(async () => {
+    // Check if Supabase keys are present
+    if (!isSupabaseConfigured()) {
+        console.warn("Supabase not configured. Please add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to .env");
+        setIsLoading(false);
+        return;
+    }
 
-  // --- END GAMIFICATION LOGIC ---
-
-  const refreshUser = useCallback(() => {
-    const userId = localStorage.getItem('gylph_user_id');
-    if (userId) {
-      const dbUser = dbService.getUser(userId);
-      if (dbUser) {
-        // Merge Gamification Data from LocalStorage (Simulated separate DB table)
-        const gamifyData = localStorage.getItem(`glyph_gamify_${userId}`);
-        let fullUser: GamifiedUser = { ...dbUser };
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (session?.user) {
+        let profile = await dbService.getUserProfile(session.user.id);
         
-        if (gamifyData) {
-            fullUser.gamification = JSON.parse(gamifyData);
-        } else {
-            fullUser.gamification = { karma: 0, streak: 1, lastVisit: new Date().toISOString(), readingsCount: 0, unlockedSigils: [] };
+        // Auto-create profile if missing (e.g., first Google Login)
+        if (!profile) {
+            try {
+                profile = await dbService.createUserProfile({
+                    id: session.user.id,
+                    email: session.user.email!,
+                    name: session.user.user_metadata.full_name || 'Seeker',
+                    role: 'user',
+                    credits: 10
+                }) as User;
+            } catch (e) {
+                console.error("Failed to recover profile:", e);
+            }
         }
 
-        fullUser = checkDailyStreak(fullUser);
-        localStorage.setItem(`glyph_gamify_${userId}`, JSON.stringify(fullUser.gamification));
+        if (profile) {
+            const gamifiedUser = syncGamification(profile);
+            setUser(gamifiedUser);
+            
+            const readings = await dbService.getReadings(profile.id);
+            setHistory(readings);
 
-        setUser(fullUser);
-        setHistory(dbService.getReadings(dbUser.id));
-      } else {
-        localStorage.removeItem('gylph_user_id');
+            // Set Admin Session for specialized routes
+            if (profile.role === 'admin') {
+                localStorage.setItem('glyph_admin_session', JSON.stringify({ 
+                    user: profile.email, 
+                    role: 'admin', 
+                    method: 'Supabase Auth' 
+                }));
+            }
+        }
+    } else {
         setUser(null);
-      }
+        setHistory([]);
+        localStorage.removeItem('glyph_admin_session');
     }
     setIsLoading(false);
   }, []);
 
   useEffect(() => {
     refreshUser();
+    
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        refreshUser();
+    });
+
+    return () => subscription.unsubscribe();
   }, [refreshUser]);
+
+  // --- ACTIONS ---
 
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     setError(null);
-    try {
-        await new Promise(r => setTimeout(r, 500)); 
-        const validUser = await dbService.validateUser(email, password);
-
-        if (validUser) {
-            localStorage.setItem('gylph_user_id', validUser.id);
-            // Trigger refresh to load gamification data
-            setTimeout(refreshUser, 50); 
-            
-            if (validUser.role === 'admin') {
-                localStorage.setItem('glyph_admin_session', JSON.stringify({ 
-                    user: validUser.email, 
-                    role: 'admin', 
-                    method: 'Standard Login' 
-                }));
-            }
-        } else {
-            throw new Error("Invalid email or password");
-        }
-    } catch (e: any) {
-        setError(e.message);
-        throw e;
-    } finally {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+        setError(error.message);
         setIsLoading(false);
+        throw error;
     }
+    // refreshUser triggered by listener
   };
 
   const register = async (name: string, email: string, password: string) => {
     setIsLoading(true);
     setError(null);
-    try {
-        await new Promise(r => setTimeout(r, 500));
-        try {
-            const newUser = await dbService.createUser(email, name, password);
-            localStorage.setItem('gylph_user_id', newUser.id);
-            // Init Gamification
-            const gamifyInit = { karma: 100, streak: 1, lastVisit: new Date().toISOString(), readingsCount: 0, unlockedSigils: [] };
-            localStorage.setItem(`glyph_gamify_${newUser.id}`, JSON.stringify(gamifyInit));
-            
-            setTimeout(refreshUser, 50);
-        } catch (e: any) {
-            throw new Error("User already exists with this email");
-        }
-    } catch (e: any) {
-        setError(e.message);
-        throw e;
-    } finally {
+    
+    // 1. SignUp with Supabase Auth
+    const { data, error } = await supabase.auth.signUp({ 
+        email, 
+        password,
+        options: { data: { full_name: name } }
+    });
+
+    if (error) {
+        setError(error.message);
         setIsLoading(false);
+        throw error;
+    }
+
+    // 2. Create Profile immediately in public.users
+    if (data.user) {
+        try {
+            await dbService.createUserProfile({
+                id: data.user.id,
+                email: email,
+                name: name,
+                role: 'user', 
+                credits: 50 // Signup Bonus
+            });
+        } catch (dbError: any) {
+            console.error("Profile creation failed:", dbError);
+            // Don't block flow, profile can be created on login
+        }
     }
   };
 
-  const googleLogin = async (email: string, name: string, googleId: string) => {
+  const googleLogin = async (email?: string, name?: string, googleId?: string) => {
       setIsLoading(true);
-      try {
-          const user = await dbService.createGoogleUser(email, name, googleId);
-          localStorage.setItem('gylph_user_id', user.id);
-          setTimeout(refreshUser, 50);
-          
-          if(user.role === 'admin') {
-              localStorage.setItem('glyph_admin_session', JSON.stringify({ 
-                  user: user.email, 
-                  role: 'admin',
-                  method: 'Google Login'
-              }));
-          }
-      } catch (e) {
-          console.error("Google Login Context Error", e);
-      } finally {
+      // Initiate OAuth
+      const { error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: { redirectTo: window.location.origin }
+      });
+      
+      if (error) {
+          console.error("Google Auth Error:", error);
           setIsLoading(false);
+          setError(error.message);
       }
   };
 
-  const logout = useCallback(() => {
-    localStorage.removeItem('gylph_user_id');
+  const logout = async () => {
+    await supabase.auth.signOut();
     localStorage.removeItem('glyph_admin_session');
     setUser(null);
     setHistory([]);
-  }, []);
+  };
 
   const addCredits = useCallback(async (amount: number) => {
     if (user) {
       try {
-        const updatedUser = await dbService.addCredits(user.id, amount);
-        setUser(prev => prev ? { ...prev, credits: updatedUser.credits } : null);
+        const updated = await dbService.addCredits(user.id, amount);
+        setUser(prev => prev ? { ...prev, credits: updated.credits } : null);
       } catch (error) {
         console.error("Failed to add credits:", error);
       }
@@ -269,18 +270,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           paid: true,
         });
         setHistory(prev => [saved, ...prev]);
-        
-        // Update Gamification
-        setUser(prev => {
-            if (!prev || !prev.gamification) return prev;
-            const updated = { ...prev };
-            updated.gamification!.readingsCount += 1;
-            updated.gamification!.karma += ACTION_POINTS.READING_COMPLETE;
-            
-            checkSigils(updated);
-            localStorage.setItem(`glyph_gamify_${updated.id}`, JSON.stringify(updated.gamification));
-            return updated;
-        });
+        awardKarma(ACTION_POINTS.READING_COMPLETE);
       } catch (error) {
         console.error("Failed to save reading:", error);
       }
@@ -295,15 +285,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [pendingReading, user, saveReading]);
 
   const toggleFavorite = useCallback(async (readingId: string) => {
-    try {
-      const updated = await dbService.toggleFavorite(readingId);
-      if (updated) {
-        setHistory(prev => prev.map(r => r.id === readingId ? updated : r));
-      }
-    } catch (error) {
-      console.error("Failed to toggle favorite:", error);
+    const reading = history.find(r => r.id === readingId);
+    if (reading) {
+        const newStatus = await dbService.toggleFavorite(readingId, reading.is_favorite);
+        setHistory(prev => prev.map(r => r.id === readingId ? { ...r, is_favorite: newStatus } : r));
     }
-  }, []);
+  }, [history]);
+
+  const awardKarma = useCallback((amount: number) => {
+      if (!user) return;
+      setUser(prev => {
+          if (!prev) return null;
+          const updated = { ...prev };
+          if (!updated.gamification) updated.gamification = { karma: 0, streak: 1, lastVisit: new Date().toISOString(), readingsCount: 0, unlockedSigils: [] };
+          
+          updated.gamification.karma += amount;
+          checkSigils(updated);
+          localStorage.setItem(`glyph_gamify_${updated.id}`, JSON.stringify(updated.gamification));
+          return updated;
+      });
+  }, [user]);
 
   const clearSigilNotification = () => setNewSigilUnlocked(null);
 

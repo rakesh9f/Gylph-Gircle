@@ -20,12 +20,10 @@ const AdminDB: React.FC = () => {
   const tableName = table || 'users';
   const data = db[tableName] || [];
 
-  // Ensure fresh data on load
   useEffect(() => {
       refresh();
   }, [tableName, refresh]);
 
-  // Check for auto-open create action
   useEffect(() => {
       if (searchParams.get('create') === 'true') {
           setIsCreateModalOpen(true);
@@ -39,16 +37,14 @@ const AdminDB: React.FC = () => {
 
   const headers: string[] = data.length > 0 
     ? Array.from(new Set(data.flatMap((record: any) => Object.keys(record))))
-    : ['id', 'status', 'name'];
+    : ['id', 'status', 'name', 'image', 'description']; 
 
-  const readOnlyFields = ['id', 'created_at'];
+  const systemFields = ['created_at'];
 
-  // Handle Form Inputs
   const handleFormChange = (key: string, value: string) => {
     setFormData(prev => ({ ...prev, [key]: value }));
   };
 
-  // --- CREATE LOGIC ---
   const openCreateModal = () => {
       setFormData({});
       setIsCreateModalOpen(true);
@@ -60,11 +56,10 @@ const AdminDB: React.FC = () => {
       setFormData({});
   };
 
-  // --- EDIT LOGIC ---
   const openEditModal = (record: any) => {
       const editableData: Record<string, string> = {};
       Object.keys(record).forEach(key => {
-          if (!readOnlyFields.includes(key)) {
+          if (!systemFields.includes(key)) {
               const val = record[key];
               editableData[key] = typeof val === 'object' ? JSON.stringify(val) : String(val);
           }
@@ -90,12 +85,12 @@ const AdminDB: React.FC = () => {
                 <div className="flex items-center gap-4">
                     <Link to="/admin/config" className="text-blue-400 hover:underline">&larr; Back to Panel</Link>
                     <h1 className="text-2xl font-bold text-white capitalize">{tableName.replace(/_/g, ' ')}</h1>
-                    <span className="bg-blue-900 text-blue-200 px-2 py-1 rounded text-xs">SQLite Active</span>
+                    <span className="bg-green-900 text-green-200 px-2 py-1 rounded text-xs">Supabase Live</span>
                 </div>
                 <div className="flex items-center gap-4 w-full md:w-auto">
                     <input 
                         type="text" 
-                        placeholder="SQL Search..." 
+                        placeholder="Search..." 
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="bg-gray-800 border border-gray-600 rounded px-4 py-2 text-white focus:outline-none focus:border-blue-500 flex-grow"
@@ -176,7 +171,7 @@ const AdminDB: React.FC = () => {
             <div className="p-6">
                 <h3 className="text-xl font-bold text-white mb-4 border-b border-gray-700 pb-2">Add New Record</h3>
                 <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
-                    {headers.filter(h => !readOnlyFields.includes(h)).map(key => (
+                    {headers.filter(h => !systemFields.includes(h)).map(key => (
                         <div key={key}>
                             <label className="block text-gray-400 text-xs uppercase mb-1">{key}</label>
                             {key === 'status' ? (
@@ -192,7 +187,7 @@ const AdminDB: React.FC = () => {
                                 <input 
                                     type="text" 
                                     className="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white focus:border-blue-500"
-                                    placeholder={`Enter ${key}`}
+                                    placeholder={key === 'id' ? 'Leave empty for auto-gen' : `Enter ${key}`}
                                     value={formData[key] || ''}
                                     onChange={e => handleFormChange(key, e.target.value)}
                                 />
@@ -232,7 +227,8 @@ const AdminDB: React.FC = () => {
                             ) : (
                                 <input 
                                     type="text" 
-                                    className="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white focus:border-blue-500"
+                                    disabled={key === 'id'} 
+                                    className={`w-full bg-gray-900 border border-gray-700 rounded p-2 text-white focus:border-blue-500 ${key === 'id' ? 'opacity-50 cursor-not-allowed' : ''}`}
                                     placeholder={`Enter ${key}`}
                                     value={formData[key]}
                                     onChange={e => handleFormChange(key, e.target.value)}

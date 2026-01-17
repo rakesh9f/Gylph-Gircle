@@ -1,10 +1,9 @@
 
 import React, { createContext, useState, useCallback, useEffect, ReactNode } from 'react';
-import { sqliteService } from '../services/sqliteService';
-import { MOCK_DATABASE } from '../services/mockDb';
+import { dbService } from '../services/db';
 
 interface DbContextType {
-  db: any; // Dynamic schema
+  db: any; // Dynamic schema state
   toggleStatus: (tableName: string, recordId: number | string) => void;
   createEntry: (tableName: string, newRecordData: Record<string, any>) => void;
   updateEntry: (tableName: string, id: number | string, updatedData: Record<string, any>) => void;
@@ -17,54 +16,76 @@ export const DbProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [dbState, setDbState] = useState<any>({});
   const [isReady, setIsReady] = useState(false);
 
-  // Function to hydrate state from SQLite
-  const refresh = useCallback(() => {
-    // We map the flat SQL tables back into a nested object structure for the frontend
+  // List of tables to pre-fetch for app functionality
+  const CORE_TABLES = ['store_items', 'featured_content', 'services', 'config', 'cloud_providers', 'payment_providers', 'gemstones'];
+
+  // Function to hydrate state from Supabase
+  const refresh = useCallback(async () => {
     const newState: any = {};
-    const tables = Object.keys(MOCK_DATABASE);
     
-    tables.forEach(table => {
-        newState[table] = sqliteService.getAll(table);
-    });
+    await Promise.all(CORE_TABLES.map(async (table) => {
+        try {
+            newState[table] = await dbService.getAll(table);
+        } catch (e) {
+            console.warn(`Failed to load table ${table}:`, e);
+            newState[table] = [];
+        }
+    }));
     
-    setDbState(newState);
+    setDbState((prev: any) => ({ ...prev, ...newState }));
   }, []);
 
   // Initialize DB on mount
   useEffect(() => {
     const init = async () => {
-        // Wait for SQL.js to load (simple poll if window.initSqlJs not ready yet)
-        let attempts = 0;
-        while (!window.initSqlJs && attempts < 20) {
-            await new Promise(r => setTimeout(r, 200));
-            attempts++;
-        }
-
-        await sqliteService.init();
-        refresh();
+        await refresh();
         setIsReady(true);
     };
     init();
   }, [refresh]);
 
   const toggleStatus = useCallback(async (tableName: string, recordId: number | string) => {
-    await sqliteService.toggleStatus(tableName, recordId);
-    refresh();
-  }, [refresh]);
+    // Optimistic Update
+    setDbState((prev: any) => {
+        const tableData = prev[tableName] || [];
+        return {
+            ...prev,
+            [tableName]: tableData.map((r: any) => 
+                r.id === recordId ? { ...r, status: r.status === 'active' ? 'inactive' : 'active' } : r
+            )
+        };
+    });
+
+    // Actual DB Update
+    try {
+        const current = dbState[tableName]?.find((r:any) => r.id === recordId);
+        if (current) {
+            const newStatus = current.status === 'active' ? 'inactive' : 'active';
+            await dbService.updateEntry(tableName, recordId, { status: newStatus });
+        }
+    } catch (e) {
+        console.error("DB Status Toggle Failed", e);
+        refresh(); // Revert
+    }
+  }, [dbState, refresh]);
   
   const createEntry = useCallback(async (tableName: string, newRecordData: Record<string, any>) => {
-    const newRecord = {
-        id: newRecordData.id || Date.now(), // Auto-gen ID if missing
-        status: 'active',
-        ...newRecordData
-    };
-    await sqliteService.insert(tableName, newRecord);
-    refresh();
+    try {
+        await dbService.createEntry(tableName, newRecordData);
+        refresh(); // Refresh to get the real ID and data
+    } catch (e) {
+        console.error("Create Entry Failed", e);
+        alert("Failed to create entry");
+    }
   }, [refresh]);
 
   const updateEntry = useCallback(async (tableName: string, id: number | string, updatedData: Record<string, any>) => {
-    await sqliteService.update(tableName, id, updatedData);
-    refresh();
+    try {
+        await dbService.updateEntry(tableName, id, updatedData);
+        refresh();
+    } catch (e) {
+        console.error("Update Entry Failed", e);
+    }
   }, [refresh]);
 
   if (!isReady) {
@@ -72,7 +93,7 @@ export const DbProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
           <div className="min-h-screen bg-gray-900 flex items-center justify-center">
               <div className="flex flex-col items-center">
                   <div className="w-12 h-12 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-                  <p className="text-amber-200 font-cinzel text-sm animate-pulse">Initializing Sacred Archives...</p>
+                  <p className="text-amber-200 font-cinzel text-sm animate-pulse">Connecting to Cosmic Cloud...</p>
               </div>
           </div>
       );

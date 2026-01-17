@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 // @ts-ignore
 import { Link } from 'react-router-dom';
@@ -30,7 +31,6 @@ const NumerologyAstrology: React.FC<NumerologyAstrologyProps> = ({ mode }) => {
   const [coords, setCoords] = useState<{lat: number, lng: number} | null>(null);
   
   const [reading, setReading] = useState<string>('');
-  const [chartData, setChartData] = useState<any>(null); 
   const [engineData, setEngineData] = useState<any>(null); 
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [progress, setProgress] = useState<number>(0);
@@ -118,13 +118,11 @@ const NumerologyAstrology: React.FC<NumerologyAstrologyProps> = ({ mode }) => {
   const handleGetReading = useCallback(async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     
-    // Close modal if open
     setShowF4Help(false);
 
     const validationError = validateForm();
     if (validationError) {
         setError(validationError);
-        // Haptic feedback for error
         if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
         return;
     }
@@ -132,12 +130,10 @@ const NumerologyAstrology: React.FC<NumerologyAstrologyProps> = ({ mode }) => {
     setIsLoading(true);
     setProgress(0);
     setReading('');
-    setChartData(null);
     setEngineData(null);
     setError('');
     setIsPaid(false);
 
-    // Progress Simulation
     const timer = setInterval(() => {
         setProgress(prev => {
             if (prev >= 90) return prev;
@@ -148,7 +144,6 @@ const NumerologyAstrology: React.FC<NumerologyAstrologyProps> = ({ mode }) => {
     try {
       let calculatedStats = null;
       
-      // Step 1: Local Calculations (Instant)
       setProgress(10);
       if (mode === 'numerology') {
           calculatedStats = calculateNumerology({
@@ -156,11 +151,9 @@ const NumerologyAstrology: React.FC<NumerologyAstrologyProps> = ({ mode }) => {
               dob: formData.dob,
               system: 'chaldean'
           });
-          // Add Vedic Grid for Full Report
           const grid = generateVedicGrid(formData.dob);
           calculatedStats = { ...calculatedStats, vedicGrid: grid };
       } else {
-          // Pass Coordinates if available, otherwise engine defaults
           calculatedStats = calculateAstrology({
             name: formData.name,
             dob: formData.dob,
@@ -173,7 +166,6 @@ const NumerologyAstrology: React.FC<NumerologyAstrologyProps> = ({ mode }) => {
       setEngineData(calculatedStats);
       setProgress(30);
 
-      // Step 2: AI Interpretation
       const result = await getAstroNumeroReading({ 
           mode, 
           ...formData, 
@@ -184,17 +176,18 @@ const NumerologyAstrology: React.FC<NumerologyAstrologyProps> = ({ mode }) => {
       setProgress(100);
       setReading(result.reading);
 
-      // Auto-Save to History
+      // Auto-Save to History with Engine Data
       const featureName = mode === 'astrology' ? t('astrology') : t('numerology');
       const imageUrl = mode === 'numerology' 
           ? "https://images.unsplash.com/photo-1542645976-7973d4177b9c?q=80&w=800" 
-          : db.image_assets?.find(a => a.id === 'chart_kundali_default')?.path;
+          : db.image_assets?.find((a: any) => a.id === 'chart_kundali_default')?.path;
 
       saveReading({
           type: mode,
           title: `${featureName} for ${formData.name}`,
           content: result.reading,
-          image_url: imageUrl
+          image_url: imageUrl,
+          meta_data: calculatedStats // Persist charts!
       });
 
     } catch (err: any) {
@@ -208,12 +201,10 @@ const NumerologyAstrology: React.FC<NumerologyAstrologyProps> = ({ mode }) => {
   const handleReadMore = () => {
     openPayment(() => {
         setIsPaid(true);
-        // Scroll to top to show full report clearly
         window.scrollTo({ top: 0, behavior: 'smooth' });
     });
   };
 
-  // Helper to generate Vedic Grid digits
   const generateVedicGrid = (dob: string) => {
       const digits = dob.replace(/[^0-9]/g, '');
       const counts: Record<string, number> = {};
@@ -223,14 +214,12 @@ const NumerologyAstrology: React.FC<NumerologyAstrologyProps> = ({ mode }) => {
       return counts;
   };
 
-  // --- CANVAS CHART DRAWING ---
   useEffect(() => {
     if ((reading || engineData) && !isLoading && canvasRef.current) {
         const canvas = canvasRef.current;
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        // Clear & Background
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = '#0F0F23';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -279,13 +268,11 @@ const NumerologyAstrology: React.FC<NumerologyAstrologyProps> = ({ mode }) => {
       });
   };
 
-  // Simplified canvas preview for the loading/teaser state
   const drawNorthIndianChart = (ctx: CanvasRenderingContext2D, w: number, h: number, chart: AstroChart) => {
       ctx.strokeStyle = '#F59E0B';
       ctx.lineWidth = 2;
       ctx.strokeRect(2, 2, w-4, h-4);
       
-      // Diamond Pattern
       ctx.beginPath();
       ctx.moveTo(0, 0); ctx.lineTo(w, h);
       ctx.moveTo(w, 0); ctx.lineTo(0, h);
@@ -296,9 +283,6 @@ const NumerologyAstrology: React.FC<NumerologyAstrologyProps> = ({ mode }) => {
       ctx.lineTo(w/2, h); ctx.lineTo(0, h/2);
       ctx.lineTo(w/2, 0);
       ctx.stroke();
-
-      // We don't render full text here, just the diamond structure as a teaser
-      // The FullReport handles the detailed SVG
       
       ctx.fillStyle = '#FCD34D';
       ctx.font = '12px Arial';
@@ -319,7 +303,6 @@ const NumerologyAstrology: React.FC<NumerologyAstrologyProps> = ({ mode }) => {
               {t('backToHome')}
           </Link>
 
-          {/* F4 Helper Floating Trigger */}
           {!showF4Help && mode === 'astrology' && (
               <button 
                 onClick={() => setShowF4Help(true)}
@@ -355,7 +338,6 @@ const NumerologyAstrology: React.FC<NumerologyAstrologyProps> = ({ mode }) => {
                 />
               </div>
               
-              {/* SMART INPUTS INTEGRATION */}
               <div className={mode === 'numerology' ? "md:col-span-2" : ""}>
                 <SmartDatePicker value={formData.dob} onChange={handleSmartDateChange} />
               </div>
@@ -386,7 +368,6 @@ const NumerologyAstrology: React.FC<NumerologyAstrologyProps> = ({ mode }) => {
               <div className="p-6">
                   <h3 className="text-2xl font-semibold text-amber-300 mb-4 text-center">{t('yourSummary', { featureName })}</h3>
                   
-                  {/* ENGINE RESULTS - NUMEROLOGY */}
                   {mode === 'numerology' && engineData && !isLoading && (
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 bg-black/40 p-4 rounded border border-amber-500/20 text-center">
                           <div>
@@ -408,7 +389,6 @@ const NumerologyAstrology: React.FC<NumerologyAstrologyProps> = ({ mode }) => {
                       </div>
                   )}
 
-                  {/* ENGINE RESULTS - ASTROLOGY (PREVIEW) */}
                   {mode === 'astrology' && engineData && !isLoading && (
                       <div className="mb-6 grid grid-cols-2 sm:grid-cols-3 gap-3 bg-black/40 p-4 rounded border border-amber-500/20 text-center">
                           <div>
@@ -440,7 +420,6 @@ const NumerologyAstrology: React.FC<NumerologyAstrologyProps> = ({ mode }) => {
                       <div className="w-full">
                           {!isPaid ? (
                               <div className="grid md:grid-cols-2 gap-8 items-center">
-                                  {/* Dynamic Canvas Chart */}
                                   <div className="bg-black/40 p-4 rounded-lg border border-amber-500/20 flex justify-center">
                                       <canvas 
                                         ref={canvasRef} 
@@ -450,7 +429,6 @@ const NumerologyAstrology: React.FC<NumerologyAstrologyProps> = ({ mode }) => {
                                       />
                                   </div>
                                   <div className="space-y-4 text-amber-100">
-                                      {/* Truncate reading for preview */}
                                       <div className="whitespace-pre-wrap italic font-lora border-l-2 border-amber-500/30 pl-4 text-sm opacity-80">
                                           {reading.replace(/#/g, '').replace(/\*\*/g, '').split(' ').slice(0, 40).join(' ')}...
                                       </div>
@@ -473,10 +451,9 @@ const NumerologyAstrology: React.FC<NumerologyAstrologyProps> = ({ mode }) => {
                               <FullReport 
                                 reading={reading} 
                                 title={t('yourSummary', { featureName })} 
-                                // Specific Vedic Image for Numerology, Chart Asset for Astrology
                                 imageUrl={mode === 'numerology' 
                                     ? "https://images.unsplash.com/photo-1542645976-7973d4177b9c?q=80&w=800" 
-                                    : db.image_assets?.find(a => a.id === 'chart_kundali_default')?.path
+                                    : db.image_assets?.find((a: any) => a.id === 'chart_kundali_default')?.path
                                 }
                                 chartData={engineData}
                               />
@@ -487,7 +464,6 @@ const NumerologyAstrology: React.FC<NumerologyAstrologyProps> = ({ mode }) => {
           </Card>
         )}
 
-        {/* F4 MASTER HELP MODAL */}
         <Modal isVisible={showF4Help} onClose={() => setShowF4Help(false)}>
             <div className="p-6 bg-gray-900 text-amber-50 relative">
                 <div className="flex items-center gap-3 mb-6 border-b border-amber-500/30 pb-4">

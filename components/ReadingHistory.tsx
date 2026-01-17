@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import Card from './shared/Card';
@@ -5,7 +6,6 @@ import Card from './shared/Card';
 import { Link } from 'react-router-dom';
 import { useTranslation } from '../hooks/useTranslation';
 import FullReport from './FullReport';
-import Modal from './shared/Modal';
 
 const ReadingHistory: React.FC = () => {
   const { history, toggleFavorite, isLoading } = useAuth();
@@ -155,8 +155,8 @@ const ReadingHistory: React.FC = () => {
                           title={selectedReading.title}
                           subtitle={selectedReading.subtitle}
                           imageUrl={selectedReading.image_url}
-                          // Note: Chart data might not be fully persisted in simplified 'reading' object in this demo DB schema, 
-                          // but text content is available.
+                          // Pass persisted charts to the renderer
+                          chartData={selectedReading.meta_data}
                       />
                   </div>
               </div>
